@@ -1,0 +1,130 @@
+{
+  "timestamp": "2025-09-29T11:26:05.803257",
+  "total_tests": 10,
+  "passed_tests": 8,
+  "success_rate": 80.0,
+  "test_results": [
+    {
+      "test_name": "API Health Check",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": null
+    },
+    {
+      "test_name": "Get All Lessons",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 28 lessons"
+    },
+    {
+      "test_name": "Get Specific Lesson",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Letter: \u0627 - Alif"
+    },
+    {
+      "test_name": "User Registration",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzExMjU1OUBleGFtcGxlLmNvbSIsImV4cCI6MTc1OTIzMTU2MX0.mJVD8TfR3tI0jIZ4TpC4h-HAhzMX1QXQc10EPa-U41w",
+        "token_type": "bearer",
+        "user": {
+          "id": "2f5dba38-03b1-4306-9834-532ac4e939fa",
+          "email": "test_112559@example.com",
+          "full_name": "Test User 112559",
+          "is_active": true,
+          "created_at": "2025-09-29T11:26:01.211243Z",
+          "total_xp": 0,
+          "current_level": 1,
+          "completed_letters": []
+        }
+      }
+    },
+    {
+      "test_name": "User Login",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzExMjU1OUBleGFtcGxlLmNvbSIsImV4cCI6MTc1OTIzMTU2MX0.mJVD8TfR3tI0jIZ4TpC4h-HAhzMX1QXQc10EPa-U41w",
+        "token_type": "bearer",
+        "user": {
+          "id": "2f5dba38-03b1-4306-9834-532ac4e939fa",
+          "email": "test_112559@example.com",
+          "full_name": "Test User 112559",
+          "is_active": true,
+          "created_at": "2025-09-29T11:26:01.211243Z",
+          "total_xp": 0,
+          "current_level": 1,
+          "completed_letters": []
+        }
+      }
+    },
+    {
+      "test_name": "Get Current User",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "id": "2f5dba38-03b1-4306-9834-532ac4e939fa",
+        "email": "test_112559@example.com",
+        "full_name": "Test User 112559",
+        "is_active": true,
+        "created_at": "2025-09-29T11:26:01.211243Z",
+        "total_xp": 0,
+        "current_level": 1,
+        "completed_letters": []
+      }
+    },
+    {
+      "test_name": "TTS Generation",
+      "success": false,
+      "status_code": 500,
+      "error": "Audio generation failed",
+      "response_data": null
+    },
+    {
+      "test_name": "Save Progress",
+      "success": false,
+      "status_code": 422,
+      "error": [
+        {
+          "type": "missing",
+          "loc": [
+            "body",
+            "user_id"
+          ],
+          "msg": "Field required",
+          "input": {
+            "letter_id": 1,
+            "completed": true,
+            "score": 95,
+            "attempts": 1,
+            "xp_earned": 50
+          },
+          "url": "https://errors.pydantic.dev/2.11/v/missing"
+        }
+      ],
+      "response_data": null
+    },
+    {
+      "test_name": "Get Progress",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 0 progress records"
+    },
+    {
+      "test_name": "Quiz Answer",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Correct: True, XP: 20"
+    }
+  ]
+}
