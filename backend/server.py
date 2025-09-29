@@ -278,10 +278,17 @@ async def generate_tts(request: TTSRequest):
 
 # Progress Routes
 @api_router.post("/progress", response_model=UserProgress)
-async def save_progress(progress: UserProgress, current_user: dict = Depends(get_current_user)):
+async def save_progress(progress_request: ProgressRequest, current_user: dict = Depends(get_current_user)):
     """Save lesson progress"""
-    progress.user_id = current_user["id"]
-    progress.updated_at = datetime.now(timezone.utc)
+    progress = UserProgress(
+        user_id=current_user["id"],
+        letter_id=progress_request.letter_id,
+        completed=progress_request.completed,
+        score=progress_request.score,
+        attempts=progress_request.attempts,
+        xp_earned=progress_request.xp_earned,
+        updated_at=datetime.now(timezone.utc)
+    )
     
     progress_dict = prepare_for_mongo(progress.dict())
     
