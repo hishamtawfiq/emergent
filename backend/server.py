@@ -165,6 +165,13 @@ class UserProgress(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class ProgressRequest(BaseModel):
+    letter_id: int
+    completed: bool = False
+    score: int = 0
+    attempts: int = 0
+    xp_earned: int = 0
+
 class TTSRequest(BaseModel):
     text: str
     voice_id: Optional[str] = "21m00Tcm4TlvDq8ikWAM"
