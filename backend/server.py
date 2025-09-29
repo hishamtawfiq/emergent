@@ -274,7 +274,11 @@ async def generate_tts(request: TTSRequest):
         
     except Exception as e:
         logging.error(f"TTS Error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Audio generation failed")
+        # Return a fallback response when TTS fails
+        return TTSResponse(
+            audio_url="data:audio/mpeg;base64,",  # Empty audio data
+            text=f"Audio unavailable for: {request.text}"
+        )
 
 # Progress Routes
 @api_router.post("/progress", response_model=UserProgress)
