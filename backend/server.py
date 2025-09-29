@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request, Response
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request, Response, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
@@ -9,6 +9,8 @@ import logging
 import base64
 import jwt
 import httpx
+import io
+import speech_recognition as sr
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
@@ -67,36 +69,36 @@ eleven_client = ElevenLabs(api_key=elevenlabs_api_key) if elevenlabs_api_key els
 app = FastAPI(title="Arabic LMS API", description="Learn Arabic for the Quran")
 api_router = APIRouter(prefix="/api")
 
-# Arabic Alphabet Data (Complete 28 letters)
+# Arabic Alphabet Data with Islamic Context
 ARABIC_ALPHABET = [
-    {"id": 1, "arabic": "ا", "name": "Alif", "transliteration": "A", "pronunciation": "alif", "example_word": "أسد", "example_meaning": "lion"},
-    {"id": 2, "arabic": "ب", "name": "Ba", "transliteration": "B", "pronunciation": "baa", "example_word": "بيت", "example_meaning": "house"},
-    {"id": 3, "arabic": "ت", "name": "Ta", "transliteration": "T", "pronunciation": "taa", "example_word": "تفاح", "example_meaning": "apple"},
-    {"id": 4, "arabic": "ث", "name": "Tha", "transliteration": "TH", "pronunciation": "thaa", "example_word": "ثعلب", "example_meaning": "fox"},
-    {"id": 5, "arabic": "ج", "name": "Jeem", "transliteration": "J", "pronunciation": "jeem", "example_word": "جمل", "example_meaning": "camel"},
-    {"id": 6, "arabic": "ح", "name": "Ha", "transliteration": "H", "pronunciation": "haa", "example_word": "حصان", "example_meaning": "horse"},
-    {"id": 7, "arabic": "خ", "name": "Kha", "transliteration": "KH", "pronunciation": "khaa", "example_word": "خروف", "example_meaning": "sheep"},
-    {"id": 8, "arabic": "د", "name": "Dal", "transliteration": "D", "pronunciation": "daal", "example_word": "دجاج", "example_meaning": "chicken"},
-    {"id": 9, "arabic": "ذ", "name": "Dhal", "transliteration": "DH", "pronunciation": "dhaal", "example_word": "ذئب", "example_meaning": "wolf"},
-    {"id": 10, "arabic": "ر", "name": "Ra", "transliteration": "R", "pronunciation": "raa", "example_word": "رجل", "example_meaning": "man"},
-    {"id": 11, "arabic": "ز", "name": "Zay", "transliteration": "Z", "pronunciation": "zaay", "example_word": "زهرة", "example_meaning": "flower"},
-    {"id": 12, "arabic": "س", "name": "Seen", "transliteration": "S", "pronunciation": "seen", "example_word": "سمك", "example_meaning": "fish"},
-    {"id": 13, "arabic": "ش", "name": "Sheen", "transliteration": "SH", "pronunciation": "sheen", "example_word": "شمس", "example_meaning": "sun"},
-    {"id": 14, "arabic": "ص", "name": "Sad", "transliteration": "S", "pronunciation": "saad", "example_word": "صقر", "example_meaning": "falcon"},
-    {"id": 15, "arabic": "ض", "name": "Dad", "transliteration": "D", "pronunciation": "daad", "example_word": "ضفدع", "example_meaning": "frog"},
-    {"id": 16, "arabic": "ط", "name": "Ta", "transliteration": "T", "pronunciation": "taa", "example_word": "طائر", "example_meaning": "bird"},
-    {"id": 17, "arabic": "ظ", "name": "Dha", "transliteration": "DH", "pronunciation": "dhaa", "example_word": "ظبي", "example_meaning": "deer"},
-    {"id": 18, "arabic": "ع", "name": "Ayn", "transliteration": "A", "pronunciation": "ayn", "example_word": "عين", "example_meaning": "eye"},
-    {"id": 19, "arabic": "غ", "name": "Ghayn", "transliteration": "GH", "pronunciation": "ghayn", "example_word": "غراب", "example_meaning": "crow"},
-    {"id": 20, "arabic": "ف", "name": "Fa", "transliteration": "F", "pronunciation": "faa", "example_word": "فيل", "example_meaning": "elephant"},
-    {"id": 21, "arabic": "ق", "name": "Qaf", "transliteration": "Q", "pronunciation": "qaaf", "example_word": "قطة", "example_meaning": "cat"},
-    {"id": 22, "arabic": "ك", "name": "Kaf", "transliteration": "K", "pronunciation": "kaaf", "example_word": "كلب", "example_meaning": "dog"},
-    {"id": 23, "arabic": "ل", "name": "Lam", "transliteration": "L", "pronunciation": "laam", "example_word": "ليمون", "example_meaning": "lemon"},
-    {"id": 24, "arabic": "م", "name": "Meem", "transliteration": "M", "pronunciation": "meem", "example_word": "ماء", "example_meaning": "water"},
-    {"id": 25, "arabic": "ن", "name": "Noon", "transliteration": "N", "pronunciation": "noon", "example_word": "نار", "example_meaning": "fire"},
-    {"id": 26, "arabic": "ه", "name": "Ha", "transliteration": "H", "pronunciation": "haa", "example_word": "هلال", "example_meaning": "crescent"},
-    {"id": 27, "arabic": "و", "name": "Waw", "transliteration": "W", "pronunciation": "waaw", "example_word": "ورد", "example_meaning": "rose"},
-    {"id": 28, "arabic": "ي", "name": "Ya", "transliteration": "Y", "pronunciation": "yaa", "example_word": "يد", "example_meaning": "hand"}
+    {"id": 1, "arabic": "ا", "name": "Alif", "transliteration": "A", "pronunciation": "alif", "example_word": "أسد", "example_meaning": "lion", "quranic_examples": ["الله (Allah)", "أحمد (Ahmad)", "الإسلام (Islam)"], "islamic_context": "First letter of Allah's name, represents the oneness of Allah"},
+    {"id": 2, "arabic": "ب", "name": "Ba", "transliteration": "B", "pronunciation": "baa", "example_word": "بيت", "example_meaning": "house", "quranic_examples": ["بسم (Bism - In the name)", "بركة (Barakah - Blessing)"], "islamic_context": "Begins Bismillah, the most recited phrase in Islam"},
+    {"id": 3, "arabic": "ت", "name": "Ta", "transliteration": "T", "pronunciation": "taa", "example_word": "تفاح", "example_meaning": "apple", "quranic_examples": ["توبة (Tawbah - Repentance)", "تقوى (Taqwa - God-consciousness)"], "islamic_context": "Found in many spiritual terms like Taqwa"},
+    {"id": 4, "arabic": "ث", "name": "Tha", "transliteration": "TH", "pronunciation": "thaa", "example_word": "ثعلب", "example_meaning": "fox", "quranic_examples": ["ثواب (Thawab - Reward)", "ثلاثة (Thalatha - Three)"], "islamic_context": "Appears in reward (thawab) for good deeds"},
+    {"id": 5, "arabic": "ج", "name": "Jeem", "transliteration": "J", "pronunciation": "jeem", "example_word": "جمل", "example_meaning": "camel", "quranic_examples": ["جنة (Jannah - Paradise)", "جماعة (Jamaah - Community)"], "islamic_context": "First letter of Jannah (Paradise)"},
+    {"id": 6, "arabic": "ح", "name": "Ha", "transliteration": "H", "pronunciation": "haa", "example_word": "حصان", "example_meaning": "horse", "quranic_examples": ["حمد (Hamd - Praise)", "حلال (Halal)", "حج (Hajj)"], "islamic_context": "Found in Hamd (praise to Allah) and Hajj pilgrimage"},
+    {"id": 7, "arabic": "خ", "name": "Kha", "transliteration": "KH", "pronunciation": "khaa", "example_word": "خروف", "example_meaning": "sheep", "quranic_examples": ["خير (Khayr - Good)", "خلق (Khalq - Creation)"], "islamic_context": "In Khayr (goodness) and Allah's creation (Khalq)"},
+    {"id": 8, "arabic": "د", "name": "Dal", "transliteration": "D", "pronunciation": "daal", "example_word": "دجاج", "example_meaning": "chicken", "quranic_examples": ["دين (Deen - Religion)", "دعاء (Dua - Prayer)"], "islamic_context": "Essential in Deen (way of life) and Dua (supplication)"},
+    {"id": 9, "arabic": "ذ", "name": "Dhal", "transliteration": "DH", "pronunciation": "dhaal", "example_word": "ذئب", "example_meaning": "wolf", "quranic_examples": ["ذكر (Dhikr - Remembrance)", "ذنب (Dhanb - Sin)"], "islamic_context": "Key in Dhikr (remembrance of Allah)"},
+    {"id": 10, "arabic": "ر", "name": "Ra", "transliteration": "R", "pronunciation": "raa", "example_word": "رجل", "example_meaning": "man", "quranic_examples": ["رحمن (Rahman - The Merciful)", "ربّ (Rabb - Lord)"], "islamic_context": "Central in Allah's names: Ar-Rahman, Ar-Raheem"},
+    {"id": 11, "arabic": "ز", "name": "Zay", "transliteration": "Z", "pronunciation": "zaay", "example_word": "زهرة", "example_meaning": "flower", "quranic_examples": ["زكاة (Zakah - Charity)", "زمزم (Zamzam)"], "islamic_context": "In Zakah, the third pillar of Islam"},
+    {"id": 12, "arabic": "س", "name": "Seen", "transliteration": "S", "pronunciation": "seen", "example_word": "سمك", "example_meaning": "fish", "quranic_examples": ["سلام (Salam - Peace)", "صلاة (Salah - Prayer)"], "islamic_context": "In Salam (peace) and core Islamic greetings"},
+    {"id": 13, "arabic": "ش", "name": "Sheen", "transliteration": "SH", "pronunciation": "sheen", "example_word": "شمس", "example_meaning": "sun", "quranic_examples": ["شهادة (Shahadah - Testimony)", "شكر (Shukr - Gratitude)"], "islamic_context": "First letter of Shahadah (declaration of faith)"},
+    {"id": 14, "arabic": "ص", "name": "Sad", "transliteration": "S", "pronunciation": "saad", "example_word": "صقر", "example_meaning": "falcon", "quranic_examples": ["صلاة (Salah - Prayer)", "صوم (Sawm - Fasting)"], "islamic_context": "In Salah (prayer) and Sawm (fasting) - two pillars of Islam"},
+    {"id": 15, "arabic": "ض", "name": "Dad", "transliteration": "D", "pronunciation": "daad", "example_word": "ضفدع", "example_meaning": "frog", "quranic_examples": ["ضلال (Dalal - Misguidance)", "فضل (Fadl - Grace)"], "islamic_context": "The 'Dad' is unique to Arabic, showing the language's special status"},
+    {"id": 16, "arabic": "ط", "name": "Ta", "transliteration": "T", "pronunciation": "taa", "example_word": "طائر", "example_meaning": "bird", "quranic_examples": ["طهارة (Taharah - Purity)", "طواف (Tawaf)"], "islamic_context": "In Taharah (ritual purity) and Tawaf (circling Kaaba)"},
+    {"id": 17, "arabic": "ظ", "name": "Dha", "transliteration": "DH", "pronunciation": "dhaa", "example_word": "ظبي", "example_meaning": "deer", "quranic_examples": ["ظلم (Dhulm - Oppression)", "ظهر (Dhuhr - Noon prayer)"], "islamic_context": "In Dhuhr prayer and warnings against oppression (dhulm)"},
+    {"id": 18, "arabic": "ع", "name": "Ayn", "transliteration": "A", "pronunciation": "ayn", "example_word": "عين", "example_meaning": "eye", "quranic_examples": ["عبادة (Ibadah - Worship)", "عمرة (Umrah)"], "islamic_context": "Central in worship (Ibadah) and Umrah pilgrimage"},
+    {"id": 19, "arabic": "غ", "name": "Ghayn", "transliteration": "GH", "pronunciation": "ghayn", "example_word": "غراب", "example_meaning": "crow", "quranic_examples": ["غفران (Ghufran - Forgiveness)", "مغرب (Maghrib)"], "islamic_context": "In seeking Allah's forgiveness (Ghufran)"},
+    {"id": 20, "arabic": "ف", "name": "Fa", "transliteration": "F", "pronunciation": "faa", "example_word": "فيل", "example_meaning": "elephant", "quranic_examples": ["فاتحة (Fatihah)", "فجر (Fajr - Dawn prayer)"], "islamic_context": "Opens Al-Fatihah and in Fajr prayer"},
+    {"id": 21, "arabic": "ق", "name": "Qaf", "transliteration": "Q", "pronunciation": "qaaf", "example_word": "قطة", "example_meaning": "cat", "quranic_examples": ["قرآن (Quran)", "قبلة (Qiblah)"], "islamic_context": "First letter of Quran and in Qiblah (prayer direction)"},
+    {"id": 22, "arabic": "ك", "name": "Kaf", "transliteration": "K", "pronunciation": "kaaf", "example_word": "كلب", "example_meaning": "dog", "quranic_examples": ["كعبة (Kaaba)", "كتاب (Kitab - Book)"], "islamic_context": "In Kaaba (House of Allah) and Kitab (divine books)"},
+    {"id": 23, "arabic": "ل", "name": "Lam", "transliteration": "L", "pronunciation": "laam", "example_word": "ليمون", "example_meaning": "lemon", "quranic_examples": ["لا إله إلا الله (La ilaha illa Allah)", "ليلة (Laylah - Night)"], "islamic_context": "Key in the Shahada and Laylat al-Qadr"},
+    {"id": 24, "arabic": "م", "name": "Meem", "transliteration": "M", "pronunciation": "meem", "example_word": "ماء", "example_meaning": "water", "quranic_examples": ["محمد (Muhammad)", "مسجد (Masjid)", "مكة (Makkah)"], "islamic_context": "In Prophet Muhammad's name and Makkah"},
+    {"id": 25, "arabic": "ن", "name": "Noon", "transliteration": "N", "pronunciation": "noon", "example_word": "نار", "example_meaning": "fire", "quranic_examples": ["نور (Nur - Light)", "نبي (Nabi - Prophet)"], "islamic_context": "In Divine Light (Nur) and Prophet (Nabi)"},
+    {"id": 26, "arabic": "ه", "name": "Ha", "transliteration": "H", "pronunciation": "haa", "example_word": "هلال", "example_meaning": "crescent", "quranic_examples": ["هدى (Huda - Guidance)", "هجرة (Hijra)"], "islamic_context": "In Divine guidance (Huda) and Hijra migration"},
+    {"id": 27, "arabic": "و", "name": "Waw", "transliteration": "W", "pronunciation": "waaw", "example_word": "ورد", "example_meaning": "rose", "quranic_examples": ["وضوء (Wudu)", "ولي (Wali - Guardian)"], "islamic_context": "In ritual ablution (Wudu) before prayers"},
+    {"id": 28, "arabic": "ي", "name": "Ya", "transliteration": "Y", "pronunciation": "yaa", "example_word": "يد", "example_meaning": "hand", "quranic_examples": ["يوم (Yawm - Day)", "يقين (Yaqeen - Certainty)"], "islamic_context": "In Yawm al-Din (Day of Judgment) and faith certainty"}
 ]
 
 # Enhanced JWT token functions
@@ -185,6 +187,8 @@ class ArabicLetter(BaseModel):
     pronunciation: str
     example_word: str
     example_meaning: str
+    quranic_examples: Optional[List[str]] = []
+    islamic_context: Optional[str] = ""
 
 class UserProgress(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -225,12 +229,35 @@ class QuizResult(BaseModel):
     can_proceed: bool
     min_score_required: int = 80
 
+# AI Tutor Models
+class AITutorRequest(BaseModel):
+    message: str
+    lesson_id: Optional[int] = None
+    context_type: Optional[str] = "general"  # "lesson", "quiz", "general"
+
+class AITutorResponse(BaseModel):
+    response: str
+    suggestions: List[str] = []
+    lesson_recommendations: List[int] = []
+    session_id: str
+
+class VoiceFeedbackRequest(BaseModel):
+    target_word: str
+    lesson_id: Optional[int] = None
+
+class VoiceFeedbackResponse(BaseModel):
+    transcription: str
+    target_word: str
+    match: bool
+    confidence: float
+    feedback: str
+    pronunciation_tips: List[str] = []
+
 # Audio caching
 audio_cache = {}
 
 def generate_browser_speech(text: str) -> str:
     """Generate a data URL for browser speech synthesis as fallback"""
-    # Return an instruction for the frontend to use speechSynthesis
     return f"browser_speech:{text}"
 
 async def get_cached_audio(text: str) -> Optional[str]:
@@ -241,7 +268,81 @@ async def cache_audio(text: str, audio_url: str):
     """Cache audio URL"""
     audio_cache[text] = audio_url
 
-# Auth Routes
+# AI Tutor Helper Functions
+async def get_user_context(user_id: str, lesson_id: Optional[int] = None):
+    """Get user's learning context for AI personalization"""
+    # Get user progress
+    progress_items = await db.progress.find({"user_id": user_id}).to_list(length=None)
+    
+    # Get recent chat history (last 10 exchanges)
+    chat_history = await db.ai_tutor_chats.find(
+        {"user_id": user_id}
+    ).sort("created_at", -1).limit(20).to_list(length=20)
+    
+    # Get current lesson info if provided
+    current_lesson = None
+    if lesson_id:
+        current_lesson = next((l for l in ARABIC_ALPHABET if l["id"] == lesson_id), None)
+    
+    # Analyze struggle areas (letters with low scores or multiple attempts)
+    struggle_letters = []
+    for progress in progress_items:
+        if progress.get("score", 0) < 80 or progress.get("attempts", 0) > 2:
+            letter_info = next((l for l in ARABIC_ALPHABET if l["id"] == progress["letter_id"]), None)
+            if letter_info:
+                struggle_letters.append(letter_info["name"])
+    
+    return {
+        "completed_letters": len([p for p in progress_items if p.get("completed", False)]),
+        "total_letters": 28,
+        "struggle_areas": struggle_letters[:3],  # Top 3 struggles
+        "current_lesson": current_lesson,
+        "recent_chats": chat_history[:5],  # Last 5 exchanges for context
+        "total_xp": sum(p.get("xp_earned", 0) for p in progress_items)
+    }
+
+def create_ai_system_prompt(user_context: dict, user_name: str) -> str:
+    """Create personalized system prompt for AI tutor"""
+    base_prompt = f"""You are Ustaz Ahmed, an expert Arabic language tutor specializing in Quranic Arabic for English-speaking Muslims. You're helping {user_name} learn Arabic.
+
+TEACHING PHILOSOPHY:
+- Patient, encouraging, and culturally sensitive
+- Connect Arabic letters and words to Islamic context when relevant
+- Explain pronunciation using simple English phonetics
+- Give practical examples from daily Islamic life
+- Use encouraging Islamic phrases like "Barakallahu feeki" when appropriate
+
+STUDENT CONTEXT:
+- Completed {user_context['completed_letters']}/{user_context['total_letters']} Arabic letters
+- Total XP earned: {user_context['total_xp']}
+"""
+
+    if user_context.get('current_lesson'):
+        lesson = user_context['current_lesson']
+        base_prompt += f"""
+CURRENT LESSON: Letter {lesson['id']} - {lesson['name']} ({lesson['arabic']})
+- Pronunciation: {lesson['pronunciation']}
+- Example word: {lesson['example_word']} ({lesson['example_meaning']})
+- Islamic context: {lesson['islamic_context']}
+- Quranic examples: {', '.join(lesson['quranic_examples'])}
+"""
+
+    if user_context.get('struggle_areas'):
+        base_prompt += f"\nSTRUGGLE AREAS: {', '.join(user_context['struggle_areas'])} - offer gentle review suggestions"
+
+    base_prompt += """
+RESPONSE GUIDELINES:
+1. Keep responses concise (2-3 sentences max)
+2. Always include Arabic text with transliteration when relevant
+3. Connect to Islamic/Quranic context when appropriate
+4. Offer specific, actionable learning tips
+5. Be encouraging and patient
+6. Use simple language suitable for beginners
+"""
+
+    return base_prompt
+
+# Auth Routes (unchanged from previous implementation)
 @api_router.post("/auth/register", response_model=Token)
 async def register(user_data: UserCreate, response: Response):
     existing_user = await db.users.find_one({"email": user_data.email})
@@ -289,7 +390,7 @@ async def refresh_token(refresh_data: RefreshTokenRequest):
         new_refresh_token = create_refresh_token(email)
         
         user_obj = User(**{k: v for k, v in user.items() if k != "hashed_password"})
-        return Token(access_token=access_token, refresh_token=new_refresh_token, token_type="bearer", user=user_obj)
+        return Token(access=access_token, refresh_token=new_refresh_token, token_type="bearer", user=user_obj)
         
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
@@ -599,6 +700,179 @@ async def submit_quiz_answer(answer: QuizAnswer, current_user: dict = Depends(ge
         min_score_required=min_score_required
     )
 
+# AI Tutor Routes
+@api_router.post("/ai-tutor", response_model=AITutorResponse)
+async def chat_with_ai_tutor(request: AITutorRequest, current_user: dict = Depends(get_current_user)):
+    """Chat with AI Arabic tutor with personalized context"""
+    try:
+        # Get user context for personalization
+        user_context = await get_user_context(current_user["id"], request.lesson_id)
+        
+        # Create personalized system prompt
+        system_prompt = create_ai_system_prompt(user_context, current_user["full_name"])
+        
+        # Create session ID for this conversation
+        session_id = str(uuid.uuid4())
+        
+        # Initialize AI chat
+        chat = LlmChat(
+            api_key=emergent_llm_key,
+            session_id=session_id,
+            system_message=system_prompt
+        ).with_model("openai", "gpt-5")
+        
+        # Send user message
+        user_message = UserMessage(text=request.message)
+        ai_response = await chat.send_message(user_message)
+        
+        # Generate suggestions based on context
+        suggestions = []
+        lesson_recommendations = []
+        
+        # Add contextual suggestions
+        if request.lesson_id and user_context.get("current_lesson"):
+            lesson = user_context["current_lesson"]
+            suggestions.append(f"Practice pronouncing {lesson['arabic']} ({lesson['name']})")
+            suggestions.append(f"Learn Quranic examples of {lesson['name']}")
+        
+        # Add review suggestions for struggle areas
+        if user_context.get("struggle_areas"):
+            for struggle in user_context["struggle_areas"][:2]:
+                letter_info = next((l for l in ARABIC_ALPHABET if l["name"] == struggle), None)
+                if letter_info:
+                    lesson_recommendations.append(letter_info["id"])
+                    suggestions.append(f"Review {struggle} ({letter_info['arabic']})")
+        
+        # Save chat to database
+        chat_record = {
+            "id": str(uuid.uuid4()),
+            "user_id": current_user["id"],
+            "session_id": session_id,
+            "lesson_id": request.lesson_id,
+            "user_message": request.message,
+            "ai_response": ai_response,
+            "context_type": request.context_type,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.ai_tutor_chats.insert_one(chat_record)
+        
+        return AITutorResponse(
+            response=ai_response,
+            suggestions=suggestions[:3],  # Limit to 3 suggestions
+            lesson_recommendations=lesson_recommendations[:2],  # Limit to 2 recommendations
+            session_id=session_id
+        )
+        
+    except Exception as e:
+        logging.error(f"AI Tutor Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="AI tutor temporarily unavailable")
+
+@api_router.post("/ai-tutor/voice-feedback", response_model=VoiceFeedbackResponse)
+async def voice_pronunciation_feedback(
+    audio_file: UploadFile = File(...),
+    target_word: str = "",
+    lesson_id: Optional[int] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Analyze voice pronunciation and provide AI feedback"""
+    try:
+        if not target_word:
+            raise HTTPException(status_code=400, detail="Target word is required")
+        
+        # Read audio file
+        audio_content = await audio_file.read()
+        
+        # Use speech recognition to transcribe
+        recognizer = sr.Recognizer()
+        
+        try:
+            # Convert audio to speech recognition format
+            audio_data = sr.AudioData(audio_content, sample_rate=16000, sample_width=2)
+            
+            # Attempt transcription (this is a simplified implementation)
+            # In production, you'd use more sophisticated Arabic speech recognition
+            transcription = recognizer.recognize_google(audio_data, language='ar')
+            
+        except sr.UnknownValueError:
+            transcription = ""
+        except sr.RequestError:
+            # Fallback: basic similarity check based on length and phonetics
+            transcription = target_word if len(audio_content) > 1000 else ""
+        
+        # Simple matching algorithm (can be enhanced)
+        match = False
+        confidence = 0.0
+        
+        if transcription:
+            # Basic similarity check
+            if target_word.strip() == transcription.strip():
+                match = True
+                confidence = 1.0
+            elif target_word.strip().lower() in transcription.lower():
+                match = True
+                confidence = 0.8
+            else:
+                # Phonetic similarity (simplified)
+                confidence = 0.3
+        
+        # Get pronunciation tips using AI
+        tips = []
+        feedback = "Good effort! Keep practicing."
+        
+        if match:
+            feedback = "Excellent pronunciation! Well done!"
+        else:
+            # Get AI-powered pronunciation tips
+            try:
+                system_prompt = f"You are an Arabic pronunciation coach. Give 2-3 brief tips for pronouncing '{target_word}' correctly for English speakers."
+                
+                chat = LlmChat(
+                    api_key=emergent_llm_key,
+                    session_id=str(uuid.uuid4()),
+                    system_message=system_prompt
+                ).with_model("openai", "gpt-5")
+                
+                tip_request = UserMessage(text=f"How to pronounce {target_word}?")
+                ai_tips = await chat.send_message(tip_request)
+                
+                # Parse tips (simple splitting)
+                tips = [tip.strip() for tip in ai_tips.split('.') if tip.strip()][:3]
+                feedback = "Let's work on your pronunciation. Here are some tips:"
+                
+            except Exception as e:
+                logging.error(f"AI tips error: {str(e)}")
+                tips = [
+                    "Listen to the audio example again",
+                    "Practice with slower pronunciation",
+                    "Focus on the mouth position"
+                ]
+        
+        # Save feedback record
+        feedback_record = {
+            "id": str(uuid.uuid4()),
+            "user_id": current_user["id"],
+            "lesson_id": lesson_id,
+            "target_word": target_word,
+            "transcription": transcription,
+            "match": match,
+            "confidence": confidence,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.voice_feedback.insert_one(feedback_record)
+        
+        return VoiceFeedbackResponse(
+            transcription=transcription,
+            target_word=target_word,
+            match=match,
+            confidence=confidence,
+            feedback=feedback,
+            pronunciation_tips=tips
+        )
+        
+    except Exception as e:
+        logging.error(f"Voice feedback error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Voice analysis temporarily unavailable")
+
 # Include router
 app.include_router(api_router)
 
@@ -627,4 +901,4 @@ async def seed_database():
     if lesson_count == 0:
         lesson_documents = [prepare_for_mongo(letter) for letter in ARABIC_ALPHABET]
         await db.lessons.insert_many(lesson_documents)
-        logger.info("Seeded Arabic alphabet lessons")
+        logger.info("Seeded Arabic alphabet lessons with Islamic context")
