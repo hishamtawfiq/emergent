@@ -14,12 +14,13 @@ import speech_recognition as sr
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Dict
 import uuid
 import bcrypt
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 from elevenlabs import ElevenLabs, VoiceSettings
 import asyncio
+import random
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -69,37 +70,40 @@ eleven_client = ElevenLabs(api_key=elevenlabs_api_key) if elevenlabs_api_key els
 app = FastAPI(title="Arabic LMS API", description="Learn Arabic for the Quran")
 api_router = APIRouter(prefix="/api")
 
-# Arabic Alphabet Data with Islamic Context
+# Arabic Alphabet Data with Enhanced Islamic Context
 ARABIC_ALPHABET = [
-    {"id": 1, "arabic": "ا", "name": "Alif", "transliteration": "A", "pronunciation": "alif", "example_word": "أسد", "example_meaning": "lion", "quranic_examples": ["الله (Allah)", "أحمد (Ahmad)", "الإسلام (Islam)"], "islamic_context": "First letter of Allah's name, represents the oneness of Allah"},
-    {"id": 2, "arabic": "ب", "name": "Ba", "transliteration": "B", "pronunciation": "baa", "example_word": "بيت", "example_meaning": "house", "quranic_examples": ["بسم (Bism - In the name)", "بركة (Barakah - Blessing)"], "islamic_context": "Begins Bismillah, the most recited phrase in Islam"},
-    {"id": 3, "arabic": "ت", "name": "Ta", "transliteration": "T", "pronunciation": "taa", "example_word": "تفاح", "example_meaning": "apple", "quranic_examples": ["توبة (Tawbah - Repentance)", "تقوى (Taqwa - God-consciousness)"], "islamic_context": "Found in many spiritual terms like Taqwa"},
-    {"id": 4, "arabic": "ث", "name": "Tha", "transliteration": "TH", "pronunciation": "thaa", "example_word": "ثعلب", "example_meaning": "fox", "quranic_examples": ["ثواب (Thawab - Reward)", "ثلاثة (Thalatha - Three)"], "islamic_context": "Appears in reward (thawab) for good deeds"},
-    {"id": 5, "arabic": "ج", "name": "Jeem", "transliteration": "J", "pronunciation": "jeem", "example_word": "جمل", "example_meaning": "camel", "quranic_examples": ["جنة (Jannah - Paradise)", "جماعة (Jamaah - Community)"], "islamic_context": "First letter of Jannah (Paradise)"},
-    {"id": 6, "arabic": "ح", "name": "Ha", "transliteration": "H", "pronunciation": "haa", "example_word": "حصان", "example_meaning": "horse", "quranic_examples": ["حمد (Hamd - Praise)", "حلال (Halal)", "حج (Hajj)"], "islamic_context": "Found in Hamd (praise to Allah) and Hajj pilgrimage"},
-    {"id": 7, "arabic": "خ", "name": "Kha", "transliteration": "KH", "pronunciation": "khaa", "example_word": "خروف", "example_meaning": "sheep", "quranic_examples": ["خير (Khayr - Good)", "خلق (Khalq - Creation)"], "islamic_context": "In Khayr (goodness) and Allah's creation (Khalq)"},
-    {"id": 8, "arabic": "د", "name": "Dal", "transliteration": "D", "pronunciation": "daal", "example_word": "دجاج", "example_meaning": "chicken", "quranic_examples": ["دين (Deen - Religion)", "دعاء (Dua - Prayer)"], "islamic_context": "Essential in Deen (way of life) and Dua (supplication)"},
-    {"id": 9, "arabic": "ذ", "name": "Dhal", "transliteration": "DH", "pronunciation": "dhaal", "example_word": "ذئب", "example_meaning": "wolf", "quranic_examples": ["ذكر (Dhikr - Remembrance)", "ذنب (Dhanb - Sin)"], "islamic_context": "Key in Dhikr (remembrance of Allah)"},
-    {"id": 10, "arabic": "ر", "name": "Ra", "transliteration": "R", "pronunciation": "raa", "example_word": "رجل", "example_meaning": "man", "quranic_examples": ["رحمن (Rahman - The Merciful)", "ربّ (Rabb - Lord)"], "islamic_context": "Central in Allah's names: Ar-Rahman, Ar-Raheem"},
-    {"id": 11, "arabic": "ز", "name": "Zay", "transliteration": "Z", "pronunciation": "zaay", "example_word": "زهرة", "example_meaning": "flower", "quranic_examples": ["زكاة (Zakah - Charity)", "زمزم (Zamzam)"], "islamic_context": "In Zakah, the third pillar of Islam"},
-    {"id": 12, "arabic": "س", "name": "Seen", "transliteration": "S", "pronunciation": "seen", "example_word": "سمك", "example_meaning": "fish", "quranic_examples": ["سلام (Salam - Peace)", "صلاة (Salah - Prayer)"], "islamic_context": "In Salam (peace) and core Islamic greetings"},
-    {"id": 13, "arabic": "ش", "name": "Sheen", "transliteration": "SH", "pronunciation": "sheen", "example_word": "شمس", "example_meaning": "sun", "quranic_examples": ["شهادة (Shahadah - Testimony)", "شكر (Shukr - Gratitude)"], "islamic_context": "First letter of Shahadah (declaration of faith)"},
-    {"id": 14, "arabic": "ص", "name": "Sad", "transliteration": "S", "pronunciation": "saad", "example_word": "صقر", "example_meaning": "falcon", "quranic_examples": ["صلاة (Salah - Prayer)", "صوم (Sawm - Fasting)"], "islamic_context": "In Salah (prayer) and Sawm (fasting) - two pillars of Islam"},
-    {"id": 15, "arabic": "ض", "name": "Dad", "transliteration": "D", "pronunciation": "daad", "example_word": "ضفدع", "example_meaning": "frog", "quranic_examples": ["ضلال (Dalal - Misguidance)", "فضل (Fadl - Grace)"], "islamic_context": "The 'Dad' is unique to Arabic, showing the language's special status"},
-    {"id": 16, "arabic": "ط", "name": "Ta", "transliteration": "T", "pronunciation": "taa", "example_word": "طائر", "example_meaning": "bird", "quranic_examples": ["طهارة (Taharah - Purity)", "طواف (Tawaf)"], "islamic_context": "In Taharah (ritual purity) and Tawaf (circling Kaaba)"},
-    {"id": 17, "arabic": "ظ", "name": "Dha", "transliteration": "DH", "pronunciation": "dhaa", "example_word": "ظبي", "example_meaning": "deer", "quranic_examples": ["ظلم (Dhulm - Oppression)", "ظهر (Dhuhr - Noon prayer)"], "islamic_context": "In Dhuhr prayer and warnings against oppression (dhulm)"},
-    {"id": 18, "arabic": "ع", "name": "Ayn", "transliteration": "A", "pronunciation": "ayn", "example_word": "عين", "example_meaning": "eye", "quranic_examples": ["عبادة (Ibadah - Worship)", "عمرة (Umrah)"], "islamic_context": "Central in worship (Ibadah) and Umrah pilgrimage"},
-    {"id": 19, "arabic": "غ", "name": "Ghayn", "transliteration": "GH", "pronunciation": "ghayn", "example_word": "غراب", "example_meaning": "crow", "quranic_examples": ["غفران (Ghufran - Forgiveness)", "مغرب (Maghrib)"], "islamic_context": "In seeking Allah's forgiveness (Ghufran)"},
-    {"id": 20, "arabic": "ف", "name": "Fa", "transliteration": "F", "pronunciation": "faa", "example_word": "فيل", "example_meaning": "elephant", "quranic_examples": ["فاتحة (Fatihah)", "فجر (Fajr - Dawn prayer)"], "islamic_context": "Opens Al-Fatihah and in Fajr prayer"},
-    {"id": 21, "arabic": "ق", "name": "Qaf", "transliteration": "Q", "pronunciation": "qaaf", "example_word": "قطة", "example_meaning": "cat", "quranic_examples": ["قرآن (Quran)", "قبلة (Qiblah)"], "islamic_context": "First letter of Quran and in Qiblah (prayer direction)"},
-    {"id": 22, "arabic": "ك", "name": "Kaf", "transliteration": "K", "pronunciation": "kaaf", "example_word": "كلب", "example_meaning": "dog", "quranic_examples": ["كعبة (Kaaba)", "كتاب (Kitab - Book)"], "islamic_context": "In Kaaba (House of Allah) and Kitab (divine books)"},
-    {"id": 23, "arabic": "ل", "name": "Lam", "transliteration": "L", "pronunciation": "laam", "example_word": "ليمون", "example_meaning": "lemon", "quranic_examples": ["لا إله إلا الله (La ilaha illa Allah)", "ليلة (Laylah - Night)"], "islamic_context": "Key in the Shahada and Laylat al-Qadr"},
-    {"id": 24, "arabic": "م", "name": "Meem", "transliteration": "M", "pronunciation": "meem", "example_word": "ماء", "example_meaning": "water", "quranic_examples": ["محمد (Muhammad)", "مسجد (Masjid)", "مكة (Makkah)"], "islamic_context": "In Prophet Muhammad's name and Makkah"},
-    {"id": 25, "arabic": "ن", "name": "Noon", "transliteration": "N", "pronunciation": "noon", "example_word": "نار", "example_meaning": "fire", "quranic_examples": ["نور (Nur - Light)", "نبي (Nabi - Prophet)"], "islamic_context": "In Divine Light (Nur) and Prophet (Nabi)"},
-    {"id": 26, "arabic": "ه", "name": "Ha", "transliteration": "H", "pronunciation": "haa", "example_word": "هلال", "example_meaning": "crescent", "quranic_examples": ["هدى (Huda - Guidance)", "هجرة (Hijra)"], "islamic_context": "In Divine guidance (Huda) and Hijra migration"},
-    {"id": 27, "arabic": "و", "name": "Waw", "transliteration": "W", "pronunciation": "waaw", "example_word": "ورد", "example_meaning": "rose", "quranic_examples": ["وضوء (Wudu)", "ولي (Wali - Guardian)"], "islamic_context": "In ritual ablution (Wudu) before prayers"},
-    {"id": 28, "arabic": "ي", "name": "Ya", "transliteration": "Y", "pronunciation": "yaa", "example_word": "يد", "example_meaning": "hand", "quranic_examples": ["يوم (Yawm - Day)", "يقين (Yaqeen - Certainty)"], "islamic_context": "In Yawm al-Din (Day of Judgment) and faith certainty"}
+    {"id": 1, "arabic": "ا", "name": "Alif", "transliteration": "A", "pronunciation": "alif", "example_word": "أسد", "example_meaning": "lion", "quranic_examples": ["الله (Allah)", "أحمد (Ahmad)", "الإسلام (Islam)"], "islamic_context": "First letter of Allah's name, represents the oneness of Allah", "common_dua_words": ["الله", "أستغفر"]},
+    {"id": 2, "arabic": "ب", "name": "Ba", "transliteration": "B", "pronunciation": "baa", "example_word": "بيت", "example_meaning": "house", "quranic_examples": ["بسم (Bism - In the name)", "بركة (Barakah - Blessing)"], "islamic_context": "Begins Bismillah, the most recited phrase in Islam", "common_dua_words": ["بسم", "بارك"]},
+    {"id": 3, "arabic": "ت", "name": "Ta", "transliteration": "T", "pronunciation": "taa", "example_word": "تفاح", "example_meaning": "apple", "quranic_examples": ["توبة (Tawbah - Repentance)", "تقوى (Taqwa - God-consciousness)"], "islamic_context": "Found in many spiritual terms like Taqwa", "common_dua_words": ["توبة", "تقبل"]},
+    {"id": 4, "arabic": "ث", "name": "Tha", "transliteration": "TH", "pronunciation": "thaa", "example_word": "ثعلب", "example_meaning": "fox", "quranic_examples": ["ثواب (Thawab - Reward)", "ثلاثة (Thalatha - Three)"], "islamic_context": "Appears in reward (thawab) for good deeds", "common_dua_words": ["ثواب"]},
+    {"id": 5, "arabic": "ج", "name": "Jeem", "transliteration": "J", "pronunciation": "jeem", "example_word": "جمل", "example_meaning": "camel", "quranic_examples": ["جنة (Jannah - Paradise)", "جماعة (Jamaah - Community)"], "islamic_context": "First letter of Jannah (Paradise)", "common_dua_words": ["جنة", "جعل"]},
+    {"id": 6, "arabic": "ح", "name": "Ha", "transliteration": "H", "pronunciation": "haa", "example_word": "حصان", "example_meaning": "horse", "quranic_examples": ["حمد (Hamd - Praise)", "حلال (Halal)", "حج (Hajj)"], "islamic_context": "Found in Hamd (praise to Allah) and Hajj pilgrimage", "common_dua_words": ["حمد", "حفظ"]},
+    {"id": 7, "arabic": "خ", "name": "Kha", "transliteration": "KH", "pronunciation": "khaa", "example_word": "خروف", "example_meaning": "sheep", "quranic_examples": ["خير (Khayr - Good)", "خلق (Khalq - Creation)"], "islamic_context": "In Khayr (goodness) and Allah's creation (Khalq)", "common_dua_words": ["خير"]},
+    {"id": 8, "arabic": "د", "name": "Dal", "transliteration": "D", "pronunciation": "daal", "example_word": "دجاج", "example_meaning": "chicken", "quranic_examples": ["دين (Deen - Religion)", "دعاء (Dua - Prayer)"], "islamic_context": "Essential in Deen (way of life) and Dua (supplication)", "common_dua_words": ["دعاء", "دين"]},
+    {"id": 9, "arabic": "ذ", "name": "Dhal", "transliteration": "DH", "pronunciation": "dhaal", "example_word": "ذئب", "example_meaning": "wolf", "quranic_examples": ["ذكر (Dhikr - Remembrance)", "ذنب (Dhanb - Sin)"], "islamic_context": "Key in Dhikr (remembrance of Allah)", "common_dua_words": ["ذكر"]},
+    {"id": 10, "arabic": "ر", "name": "Ra", "transliteration": "R", "pronunciation": "raa", "example_word": "رجل", "example_meaning": "man", "quranic_examples": ["رحمن (Rahman - The Merciful)", "ربّ (Rabb - Lord)"], "islamic_context": "Central in Allah's names: Ar-Rahman, Ar-Raheem", "common_dua_words": ["رب", "رحمة"]},
+    {"id": 11, "arabic": "ز", "name": "Zay", "transliteration": "Z", "pronunciation": "zaay", "example_word": "زهرة", "example_meaning": "flower", "quranic_examples": ["زكاة (Zakah - Charity)", "زمزم (Zamzam)"], "islamic_context": "In Zakah, the third pillar of Islam", "common_dua_words": ["زكاة"]},
+    {"id": 12, "arabic": "س", "name": "Seen", "transliteration": "S", "pronunciation": "seen", "example_word": "سمك", "example_meaning": "fish", "quranic_examples": ["سلام (Salam - Peace)", "صلاة (Salah - Prayer)"], "islamic_context": "In Salam (peace) and core Islamic greetings", "common_dua_words": ["سلام", "سبحان"]},
+    {"id": 13, "arabic": "ش", "name": "Sheen", "transliteration": "SH", "pronunciation": "sheen", "example_word": "شمس", "example_meaning": "sun", "quranic_examples": ["شهادة (Shahadah - Testimony)", "شكر (Shukr - Gratitude)"], "islamic_context": "First letter of Shahadah (declaration of faith)", "common_dua_words": ["شكر", "شهادة"]},
+    {"id": 14, "arabic": "ص", "name": "Sad", "transliteration": "S", "pronunciation": "saad", "example_word": "صقر", "example_meaning": "falcon", "quranic_examples": ["صلاة (Salah - Prayer)", "صوم (Sawm - Fasting)"], "islamic_context": "In Salah (prayer) and Sawm (fasting) - two pillars of Islam", "common_dua_words": ["صلاة", "صدقة"]},
+    {"id": 15, "arabic": "ض", "name": "Dad", "transliteration": "D", "pronunciation": "daad", "example_word": "ضفدع", "example_meaning": "frog", "quranic_examples": ["ضلال (Dalal - Misguidance)", "فضل (Fadl - Grace)"], "islamic_context": "The 'Dad' is unique to Arabic, showing the language's special status", "common_dua_words": ["فضل"]},
+    {"id": 16, "arabic": "ط", "name": "Ta", "transliteration": "T", "pronunciation": "taa", "example_word": "طائر", "example_meaning": "bird", "quranic_examples": ["طهارة (Taharah - Purity)", "طواف (Tawaf)"], "islamic_context": "In Taharah (ritual purity) and Tawaf (circling Kaaba)", "common_dua_words": ["طهارة"]},
+    {"id": 17, "arabic": "ظ", "name": "Dha", "transliteration": "DH", "pronunciation": "dhaa", "example_word": "ظبي", "example_meaning": "deer", "quranic_examples": ["ظلم (Dhulm - Oppression)", "ظهر (Dhuhr - Noon prayer)"], "islamic_context": "In Dhuhr prayer and warnings against oppression (dhulm)", "common_dua_words": ["ظهر"]},
+    {"id": 18, "arabic": "ع", "name": "Ayn", "transliteration": "A", "pronunciation": "ayn", "example_word": "عين", "example_meaning": "eye", "quranic_examples": ["عبادة (Ibadah - Worship)", "عمرة (Umrah)"], "islamic_context": "Central in worship (Ibadah) and Umrah pilgrimage", "common_dua_words": ["عبادة", "عافية"]},
+    {"id": 19, "arabic": "غ", "name": "Ghayn", "transliteration": "GH", "pronunciation": "ghayn", "example_word": "غراب", "example_meaning": "crow", "quranic_examples": ["غفران (Ghufran - Forgiveness)", "مغرب (Maghrib)"], "islamic_context": "In seeking Allah's forgiveness (Ghufran)", "common_dua_words": ["غفران", "غفر"]},
+    {"id": 20, "arabic": "ف", "name": "Fa", "transliteration": "F", "pronunciation": "faa", "example_word": "فيل", "example_meaning": "elephant", "quranic_examples": ["فاتحة (Fatihah)", "فجر (Fajr - Dawn prayer)"], "islamic_context": "Opens Al-Fatihah and in Fajr prayer", "common_dua_words": ["فاتحة", "فضل"]},
+    {"id": 21, "arabic": "ق", "name": "Qaf", "transliteration": "Q", "pronunciation": "qaaf", "example_word": "قطة", "example_meaning": "cat", "quranic_examples": ["قرآن (Quran)", "قبلة (Qiblah)"], "islamic_context": "First letter of Quran and in Qiblah (prayer direction)", "common_dua_words": ["قرآن", "قدر"]},
+    {"id": 22, "arabic": "ك", "name": "Kaf", "transliteration": "K", "pronunciation": "kaaf", "example_word": "كلب", "example_meaning": "dog", "quranic_examples": ["كعبة (Kaaba)", "كتاب (Kitab - Book)"], "islamic_context": "In Kaaba (House of Allah) and Kitab (divine books)", "common_dua_words": ["كتاب", "كريم"]},
+    {"id": 23, "arabic": "ل", "name": "Lam", "transliteration": "L", "pronunciation": "laam", "example_word": "ليمون", "example_meaning": "lemon", "quranic_examples": ["لا إله إلا الله (La ilaha illa Allah)", "ليلة (Laylah - Night)"], "islamic_context": "Key in the Shahada and Laylat al-Qadr", "common_dua_words": ["لا إله إلا الله", "لطف"]},
+    {"id": 24, "arabic": "م", "name": "Meem", "transliteration": "M", "pronunciation": "meem", "example_word": "ماء", "example_meaning": "water", "quranic_examples": ["محمد (Muhammad)", "مسجد (Masjid)", "مكة (Makkah)"], "islamic_context": "In Prophet Muhammad's name and Makkah", "common_dua_words": ["محمد", "مبارك"]},
+    {"id": 25, "arabic": "ن", "name": "Noon", "transliteration": "N", "pronunciation": "noon", "example_word": "نار", "example_meaning": "fire", "quranic_examples": ["نور (Nur - Light)", "نبي (Nabi - Prophet)"], "islamic_context": "In Divine Light (Nur) and Prophet (Nabi)", "common_dua_words": ["نور", "نصر"]},
+    {"id": 26, "arabic": "ه", "name": "Ha", "transliteration": "H", "pronunciation": "haa", "example_word": "هلال", "example_meaning": "crescent", "quranic_examples": ["هدى (Huda - Guidance)", "هجرة (Hijra)"], "islamic_context": "In Divine guidance (Huda) and Hijra migration", "common_dua_words": ["هداية", "هدى"]},
+    {"id": 27, "arabic": "و", "name": "Waw", "transliteration": "W", "pronunciation": "waaw", "example_word": "ورد", "example_meaning": "rose", "quranic_examples": ["وضوء (Wudu)", "ولي (Wali - Guardian)"], "islamic_context": "In ritual ablution (Wudu) before prayers", "common_dua_words": ["وضوء", "ولي"]},
+    {"id": 28, "arabic": "ي", "name": "Ya", "transliteration": "Y", "pronunciation": "yaa", "example_word": "يد", "example_meaning": "hand", "quranic_examples": ["يوم (Yawm - Day)", "يقين (Yaqeen - Certainty)"], "islamic_context": "In Yawm al-Din (Day of Judgment) and faith certainty", "common_dua_words": ["يوم", "يسر"]}
 ]
+
+# Cache for recommendations (10-minute TTL)
+recommendations_cache = {}
 
 # Enhanced JWT token functions
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -176,9 +180,57 @@ class Token(BaseModel):
     token_type: str
     user: User
 
-class SessionDataRequest(BaseModel):
-    pass
+# Phase 2.2: Personalization Models
+class MemoryItem(BaseModel):
+    unit_id: int
+    type: str  # "letter", "word", "rule"
+    score: int  # 0-100
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class ReviewQueueItem(BaseModel):
+    unit_id: int
+    reason: str  # "low_score", "timeout", "streak_break"
+    due_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class QuizScore(BaseModel):
+    unit_id: int
+    score: int
+    taken_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class AINote(BaseModel):
+    note: str
+    source: str  # "tutor", "system"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class UserLearningMemory(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    strengths: List[MemoryItem] = []
+    weaknesses: List[MemoryItem] = []
+    review_queue: List[ReviewQueueItem] = []
+    streak_days: int = 0
+    last_quiz_scores: List[QuizScore] = []  # Keep last 10
+    ai_notes: List[AINote] = []
+
+class PersonalizationRecommendation(BaseModel):
+    next_primary: Optional[Dict] = None  # {unit_id, name, reason}
+    next_secondary: List[Dict] = []  # [{unit_id, name, reason}]
+    nudge_message: Optional[str] = None
+
+class ReviewSession(BaseModel):
+    unit_id: int
+    unit_type: str = "letter"
+    questions: List[Dict] = []
+    user_answers: List[int] = []
+
+class ReviewResult(BaseModel):
+    score: int
+    passed: bool
+    xp_earned: int
+    message: str
+
+# Existing models (unchanged)
 class ArabicLetter(BaseModel):
     id: int
     arabic: str
@@ -189,6 +241,7 @@ class ArabicLetter(BaseModel):
     example_meaning: str
     quranic_examples: Optional[List[str]] = []
     islamic_context: Optional[str] = ""
+    common_dua_words: Optional[List[str]] = []
 
 class UserProgress(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -268,41 +321,179 @@ async def cache_audio(text: str, audio_url: str):
     """Cache audio URL"""
     audio_cache[text] = audio_url
 
-# AI Tutor Helper Functions
-async def get_user_context(user_id: str, lesson_id: Optional[int] = None):
-    """Get user's learning context for AI personalization"""
-    # Get user progress
+# Phase 2.2: Personalization Helper Functions
+async def get_or_create_learning_memory(user_id: str) -> UserLearningMemory:
+    """Get or create learning memory for user"""
+    memory_data = await db.user_learning_memory.find_one({"user_id": user_id})
+    
+    if not memory_data:
+        # Create new memory
+        memory = UserLearningMemory(user_id=user_id)
+        memory_dict = prepare_for_mongo(memory.dict())
+        await db.user_learning_memory.insert_one(memory_dict)
+        return memory
+    
+    return UserLearningMemory(**memory_data)
+
+async def update_learning_memory(user_id: str, memory: UserLearningMemory):
+    """Update user's learning memory"""
+    memory.last_seen = datetime.now(timezone.utc)
+    memory_dict = prepare_for_mongo(memory.dict())
+    
+    await db.user_learning_memory.update_one(
+        {"user_id": user_id},
+        {"$set": memory_dict},
+        upsert=True
+    )
+
+async def generate_recommendations(user_id: str) -> PersonalizationRecommendation:
+    """Generate adaptive recommendations for user"""
+    # Check cache first
+    cache_key = f"recommendations_{user_id}"
+    if cache_key in recommendations_cache:
+        cache_time, cached_result = recommendations_cache[cache_key]
+        if datetime.now() - cache_time < timedelta(minutes=10):
+            return cached_result
+    
+    memory = await get_or_create_learning_memory(user_id)
+    recommendations = PersonalizationRecommendation()
+    
+    # Rule 1: Low score letters (< 80% in last 3 attempts)
+    low_score_units = []
+    recent_scores = memory.last_quiz_scores[-3:] if len(memory.last_quiz_scores) >= 3 else memory.last_quiz_scores
+    
+    for score_record in recent_scores:
+        if score_record.score < 80:
+            letter_info = next((l for l in ARABIC_ALPHABET if l["id"] == score_record.unit_id), None)
+            if letter_info:
+                low_score_units.append({
+                    "unit_id": score_record.unit_id,
+                    "name": letter_info["name"],
+                    "arabic": letter_info["arabic"],
+                    "reason": "low_score",
+                    "score": score_record.score
+                })
+    
+    # Rule 2: Timeout (not practiced in >7 days)
+    timeout_units = []
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    
+    for score_record in memory.last_quiz_scores:
+        if score_record.taken_at < week_ago:
+            letter_info = next((l for l in ARABIC_ALPHABET if l["id"] == score_record.unit_id), None)
+            if letter_info and score_record.unit_id not in [u["unit_id"] for u in low_score_units]:
+                timeout_units.append({
+                    "unit_id": score_record.unit_id,
+                    "name": letter_info["name"],
+                    "arabic": letter_info["arabic"],
+                    "reason": "timeout"
+                })
+    
+    # Rule 3: Streak break - get last 2 practiced units
+    streak_break_units = []
+    if memory.streak_days == 0 and len(memory.last_quiz_scores) >= 2:
+        for score_record in memory.last_quiz_scores[-2:]:
+            letter_info = next((l for l in ARABIC_ALPHABET if l["id"] == score_record.unit_id), None)
+            if letter_info:
+                streak_break_units.append({
+                    "unit_id": score_record.unit_id,
+                    "name": letter_info["name"],
+                    "arabic": letter_info["arabic"],
+                    "reason": "streak_break"
+                })
+    
+    # Set primary recommendation (highest priority)
+    if low_score_units:
+        recommendations.next_primary = low_score_units[0]
+    elif timeout_units:
+        recommendations.next_primary = timeout_units[0]
+    elif streak_break_units:
+        recommendations.next_primary = streak_break_units[0]
+    
+    # Set secondary recommendations
+    all_recommendations = low_score_units + timeout_units + streak_break_units
+    recommendations.next_secondary = [r for r in all_recommendations if r != recommendations.next_primary][:3]
+    
+    # Generate nudge message
+    if recommendations.next_primary:
+        unit_name = recommendations.next_primary["name"]
+        reason = recommendations.next_primary["reason"]
+        
+        if reason == "low_score":
+            recommendations.nudge_message = f"Let's review {unit_name} - practice makes perfect! 📚"
+        elif reason == "timeout":
+            recommendations.nudge_message = f"It's been a while since you practiced {unit_name}. Quick review? 🔄"
+        elif reason == "streak_break":
+            recommendations.nudge_message = f"Let's rebuild your streak with {unit_name}! 🔥"
+    elif len(memory.last_quiz_scores) > 0:
+        recommendations.nudge_message = "Great progress! Ready for your next Arabic letter? ✨"
+    else:
+        recommendations.nudge_message = "Welcome! Let's start your Arabic journey with Alif (ا) 🌟"
+    
+    # Cache result
+    recommendations_cache[cache_key] = (datetime.now(), recommendations)
+    
+    return recommendations
+
+async def get_user_context_enhanced(user_id: str, lesson_id: Optional[int] = None):
+    """Enhanced user context with personalization data"""
+    # Get basic context
     progress_items = await db.progress.find({"user_id": user_id}).to_list(length=None)
     
-    # Get recent chat history (last 10 exchanges)
+    # Get learning memory
+    memory = await get_or_create_learning_memory(user_id)
+    
+    # Get recent chat history (last 5 exchanges)
     chat_history = await db.ai_tutor_chats.find(
         {"user_id": user_id}
-    ).sort("created_at", -1).limit(20).to_list(length=20)
+    ).sort("created_at", -1).limit(10).to_list(length=10)
     
-    # Get current lesson info if provided
+    # Get current lesson info
     current_lesson = None
     if lesson_id:
         current_lesson = next((l for l in ARABIC_ALPHABET if l["id"] == lesson_id), None)
     
-    # Analyze struggle areas (letters with low scores or multiple attempts)
-    struggle_letters = []
-    for progress in progress_items:
-        if progress.get("score", 0) < 80 or progress.get("attempts", 0) > 2:
-            letter_info = next((l for l in ARABIC_ALPHABET if l["id"] == progress["letter_id"]), None)
+    # Analyze top 3 weaknesses
+    top_weaknesses = []
+    if memory.weaknesses:
+        sorted_weaknesses = sorted(memory.weaknesses, key=lambda x: x.score)[:3]
+        for weakness in sorted_weaknesses:
+            letter_info = next((l for l in ARABIC_ALPHABET if l["id"] == weakness.unit_id), None)
             if letter_info:
-                struggle_letters.append(letter_info["name"])
+                top_weaknesses.append({
+                    "name": letter_info["name"],
+                    "arabic": letter_info["arabic"],
+                    "score": weakness.score,
+                    "reason": "needs_practice"
+                })
+    
+    # Calculate quiz trend
+    quiz_trend = "flat"
+    if len(memory.last_quiz_scores) >= 3:
+        recent_scores = [q.score for q in memory.last_quiz_scores[-3:]]
+        if recent_scores[-1] > recent_scores[0] + 10:
+            quiz_trend = "improving"
+        elif recent_scores[-1] < recent_scores[0] - 10:
+            quiz_trend = "declining"
+    
+    # Get recommendations
+    recommendations = await generate_recommendations(user_id)
     
     return {
         "completed_letters": len([p for p in progress_items if p.get("completed", False)]),
         "total_letters": 28,
-        "struggle_areas": struggle_letters[:3],  # Top 3 struggles
+        "top_weaknesses": top_weaknesses,
         "current_lesson": current_lesson,
-        "recent_chats": chat_history[:5],  # Last 5 exchanges for context
-        "total_xp": sum(p.get("xp_earned", 0) for p in progress_items)
+        "recent_chats": chat_history[:3],  # Last 3 exchanges
+        "total_xp": sum(p.get("xp_earned", 0) for p in progress_items),
+        "quiz_trend": quiz_trend,
+        "streak_days": memory.streak_days,
+        "next_primary": recommendations.next_primary,
+        "last_scores_summary": memory.last_quiz_scores[-3:] if memory.last_quiz_scores else []
     }
 
-def create_ai_system_prompt(user_context: dict, user_name: str) -> str:
-    """Create personalized system prompt for AI tutor"""
+def create_personalized_ai_prompt(user_context: dict, user_name: str) -> str:
+    """Create enhanced AI system prompt with personalization"""
     base_prompt = f"""You are Ustaz Ahmed, an expert Arabic language tutor specializing in Quranic Arabic for English-speaking Muslims. You're helping {user_name} learn Arabic.
 
 TEACHING PHILOSOPHY:
@@ -315,29 +506,47 @@ TEACHING PHILOSOPHY:
 STUDENT CONTEXT:
 - Completed {user_context['completed_letters']}/{user_context['total_letters']} Arabic letters
 - Total XP earned: {user_context['total_xp']}
+- Current streak: {user_context['streak_days']} days
+- Learning trend: {user_context['quiz_trend']}
 """
 
+    # Add current lesson context
     if user_context.get('current_lesson'):
         lesson = user_context['current_lesson']
         base_prompt += f"""
 CURRENT LESSON: Letter {lesson['id']} - {lesson['name']} ({lesson['arabic']})
 - Pronunciation: {lesson['pronunciation']}
-- Example word: {lesson['example_word']} ({lesson['example_meaning']})
 - Islamic context: {lesson['islamic_context']}
 - Quranic examples: {', '.join(lesson['quranic_examples'])}
 """
+        # Add Islamic context boosters
+        if lesson.get('common_dua_words'):
+            base_prompt += f"- Common dua words: {', '.join(lesson['common_dua_words'])}\n"
 
-    if user_context.get('struggle_areas'):
-        base_prompt += f"\nSTRUGGLE AREAS: {', '.join(user_context['struggle_areas'])} - offer gentle review suggestions"
+    # Add personalized weaknesses
+    if user_context.get('top_weaknesses'):
+        weakness_names = [w['name'] for w in user_context['top_weaknesses'][:2]]
+        base_prompt += f"\nWEAKNESS AREAS: {', '.join(weakness_names)} - offer gentle review suggestions"
+
+    # Add primary recommendation
+    if user_context.get('next_primary'):
+        primary = user_context['next_primary']
+        base_prompt += f"\nRECOMMENDED FOCUS: {primary['name']} ({primary['arabic']}) - {primary['reason']}"
 
     base_prompt += """
 RESPONSE GUIDELINES:
-1. Keep responses concise (2-3 sentences max)
-2. Always include Arabic text with transliteration when relevant
-3. Connect to Islamic/Quranic context when appropriate
-4. Offer specific, actionable learning tips
-5. Be encouraging and patient
-6. Use simple language suitable for beginners
+1. Start with a brief, targeted suggestion if user has weaknesses or primary recommendations
+2. Keep responses concise (2-3 sentences max)
+3. Always include Arabic text with transliteration when relevant
+4. Connect to Islamic/Quranic context when appropriate
+5. Offer specific, actionable learning tips
+6. Be encouraging and patient
+7. Use simple language suitable for beginners
+
+OPENING SUGGESTIONS (use when appropriate):
+- If user has low scoring letters: "Let's review [letter] - you missed it recently. Quick 2-minute practice?"
+- If user has timeout letters: "It's been a while since [letter]. Ready for a quick refresher?"
+- If streak broken: "Let's rebuild your streak with [letter] review!"
 """
 
     return base_prompt
@@ -390,7 +599,7 @@ async def refresh_token(refresh_data: RefreshTokenRequest):
         new_refresh_token = create_refresh_token(email)
         
         user_obj = User(**{k: v for k, v in user.items() if k != "hashed_password"})
-        return Token(access=access_token, refresh_token=new_refresh_token, token_type="bearer", user=user_obj)
+        return Token(access_token=access_token, refresh_token=new_refresh_token, token_type="bearer", user=user_obj)
         
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
@@ -471,14 +680,11 @@ async def logout(request: Request, response: Response, current_user: dict = Depe
         
         # Clear session cookie
         response.delete_cookie("session_token", path="/", secure=True, samesite="none")
-        
-        # Also clear any other potential cookies
         response.delete_cookie("session_token", path="/")
         
-        # Invalidate current JWT by adding to blacklist (optional enhancement)
+        # Invalidate current JWT by adding to blacklist
         token = request.headers.get("authorization", "").replace("Bearer ", "")
         if token:
-            # Store blacklisted token with expiry
             blacklist_entry = {
                 "token": token,
                 "user_id": current_user["id"],
@@ -491,7 +697,7 @@ async def logout(request: Request, response: Response, current_user: dict = Depe
         
     except Exception as e:
         logging.error(f"Logout error: {str(e)}")
-        return {"message": "Logged out successfully"}  # Still return success to user
+        return {"message": "Logged out successfully"}
 
 @api_router.get("/auth/me", response_model=User)
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
@@ -567,10 +773,10 @@ async def generate_tts(request: TTSRequest):
         source="browser"
     )
 
-# Progress Routes
+# Progress Routes with Enhanced Memory Updates
 @api_router.post("/progress", response_model=UserProgress)
 async def save_progress(progress_request: ProgressRequest, current_user: dict = Depends(get_current_user)):
-    """Save lesson progress"""
+    """Save lesson progress with memory updates"""
     progress = UserProgress(
         user_id=current_user["id"],
         letter_id=progress_request.letter_id,
@@ -611,6 +817,60 @@ async def save_progress(progress_request: ProgressRequest, current_user: dict = 
                 "completed_letters": completed_letters
             }}
         )
+    
+    # Update learning memory
+    memory = await get_or_create_learning_memory(current_user["id"])
+    
+    # Add to quiz scores (keep last 10)
+    quiz_score = QuizScore(
+        unit_id=progress_request.letter_id,
+        score=progress_request.score,
+        taken_at=datetime.now(timezone.utc)
+    )
+    memory.last_quiz_scores.append(quiz_score)
+    if len(memory.last_quiz_scores) > 10:
+        memory.last_quiz_scores = memory.last_quiz_scores[-10:]
+    
+    # Update strengths/weaknesses
+    memory_item = MemoryItem(
+        unit_id=progress_request.letter_id,
+        type="letter",
+        score=progress_request.score,
+        updated_at=datetime.now(timezone.utc)
+    )
+    
+    if progress_request.score >= 80:
+        # Remove from weaknesses, add to strengths
+        memory.weaknesses = [w for w in memory.weaknesses if w.unit_id != progress_request.letter_id]
+        # Update or add to strengths
+        existing_strength = next((s for s in memory.strengths if s.unit_id == progress_request.letter_id), None)
+        if existing_strength:
+            existing_strength.score = max(existing_strength.score, progress_request.score)
+            existing_strength.updated_at = datetime.now(timezone.utc)
+        else:
+            memory.strengths.append(memory_item)
+    else:
+        # Add to weaknesses
+        existing_weakness = next((w for w in memory.weaknesses if w.unit_id == progress_request.letter_id), None)
+        if existing_weakness:
+            existing_weakness.score = progress_request.score
+            existing_weakness.updated_at = datetime.now(timezone.utc)
+        else:
+            memory.weaknesses.append(memory_item)
+    
+    # Update streak
+    today = datetime.now(timezone.utc).date()
+    if memory.last_seen.date() == today - timedelta(days=1):
+        memory.streak_days += 1
+    elif memory.last_seen.date() != today:
+        memory.streak_days = 1
+    
+    # Invalidate recommendations cache
+    cache_key = f"recommendations_{current_user['id']}"
+    if cache_key in recommendations_cache:
+        del recommendations_cache[cache_key]
+    
+    await update_learning_memory(current_user["id"], memory)
     
     return progress
 
@@ -700,16 +960,16 @@ async def submit_quiz_answer(answer: QuizAnswer, current_user: dict = Depends(ge
         min_score_required=min_score_required
     )
 
-# AI Tutor Routes
+# Enhanced AI Tutor Routes with Personalization
 @api_router.post("/ai-tutor", response_model=AITutorResponse)
 async def chat_with_ai_tutor(request: AITutorRequest, current_user: dict = Depends(get_current_user)):
-    """Chat with AI Arabic tutor with personalized context"""
+    """Chat with AI Arabic tutor with enhanced personalization"""
     try:
-        # Get user context for personalization
-        user_context = await get_user_context(current_user["id"], request.lesson_id)
+        # Get enhanced user context with personalization
+        user_context = await get_user_context_enhanced(current_user["id"], request.lesson_id)
         
         # Create personalized system prompt
-        system_prompt = create_ai_system_prompt(user_context, current_user["full_name"])
+        system_prompt = create_personalized_ai_prompt(user_context, current_user["full_name"])
         
         # Create session ID for this conversation
         session_id = str(uuid.uuid4())
@@ -725,23 +985,28 @@ async def chat_with_ai_tutor(request: AITutorRequest, current_user: dict = Depen
         user_message = UserMessage(text=request.message)
         ai_response = await chat.send_message(user_message)
         
-        # Generate suggestions based on context
+        # Generate contextual suggestions
         suggestions = []
         lesson_recommendations = []
         
-        # Add contextual suggestions
+        # Add contextual suggestions based on current lesson
         if request.lesson_id and user_context.get("current_lesson"):
             lesson = user_context["current_lesson"]
             suggestions.append(f"Practice pronouncing {lesson['arabic']} ({lesson['name']})")
-            suggestions.append(f"Learn Quranic examples of {lesson['name']}")
+            if lesson.get("quranic_examples"):
+                suggestions.append(f"Learn Quranic examples of {lesson['name']}")
         
-        # Add review suggestions for struggle areas
-        if user_context.get("struggle_areas"):
-            for struggle in user_context["struggle_areas"][:2]:
-                letter_info = next((l for l in ARABIC_ALPHABET if l["name"] == struggle), None)
-                if letter_info:
-                    lesson_recommendations.append(letter_info["id"])
-                    suggestions.append(f"Review {struggle} ({letter_info['arabic']})")
+        # Add personalized suggestions based on weaknesses
+        if user_context.get("top_weaknesses"):
+            for weakness in user_context["top_weaknesses"][:2]:
+                suggestions.append(f"Review {weakness['name']} ({weakness['arabic']})")
+                lesson_recommendations.append(weakness.get("unit_id", weakness.get("id", 1)))
+        
+        # Add primary recommendation
+        if user_context.get("next_primary"):
+            primary = user_context["next_primary"]
+            suggestions.append(f"Practice {primary['name']} - {primary['reason']}")
+            lesson_recommendations.append(primary["unit_id"])
         
         # Save chat to database
         chat_record = {
@@ -755,6 +1020,19 @@ async def chat_with_ai_tutor(request: AITutorRequest, current_user: dict = Depen
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.ai_tutor_chats.insert_one(chat_record)
+        
+        # Update learning memory with AI note if significant
+        if any(word in request.message.lower() for word in ["help", "difficult", "hard", "confused"]):
+            memory = await get_or_create_learning_memory(current_user["id"])
+            ai_note = AINote(
+                note=f"User asked for help with: {request.message[:50]}...",
+                source="tutor",
+                created_at=datetime.now(timezone.utc)
+            )
+            memory.ai_notes.append(ai_note)
+            if len(memory.ai_notes) > 10:  # Keep last 10 notes
+                memory.ai_notes = memory.ai_notes[-10:]
+            await update_learning_memory(current_user["id"], memory)
         
         return AITutorResponse(
             response=ai_response,
@@ -779,10 +1057,7 @@ async def voice_pronunciation_feedback(
         if not target_word:
             raise HTTPException(status_code=400, detail="Target word is required")
         
-        # For MVP, we'll provide AI-powered feedback without complex speech recognition
-        # This gives users immediate value while we can enhance the speech recognition later
-        
-        # Use AI to generate pronunciation feedback and tips
+        # Enhanced AI-powered feedback system
         try:
             system_prompt = f"""You are an Arabic pronunciation coach. The user is trying to pronounce the Arabic word/sound '{target_word}'. 
             Give encouraging feedback and 3 specific pronunciation tips for English speakers learning Arabic. 
@@ -822,7 +1097,6 @@ async def voice_pronunciation_feedback(
                 ]
             
             # Simulate realistic feedback with some randomization for engagement
-            import random
             confidence = random.uniform(0.6, 0.9)  # Realistic confidence range
             match = confidence > 0.75  # Consider it a match if confidence is high
             
@@ -869,6 +1143,149 @@ async def voice_pronunciation_feedback(
         logging.error(f"Voice feedback error: {str(e)}")
         raise HTTPException(status_code=500, detail="Voice analysis temporarily unavailable")
 
+# Phase 2.2: Personalization Routes
+@api_router.get("/personalize/recommendations", response_model=PersonalizationRecommendation)
+async def get_recommendations(current_user: dict = Depends(get_current_user)):
+    """Get personalized learning recommendations"""
+    try:
+        recommendations = await generate_recommendations(current_user["id"])
+        return recommendations
+    except Exception as e:
+        logging.error(f"Recommendations error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Recommendations temporarily unavailable")
+
+@api_router.get("/personalize/nudges")
+async def get_nudges(current_user: dict = Depends(get_current_user)):
+    """Get personalized nudge messages"""
+    try:
+        recommendations = await generate_recommendations(current_user["id"])
+        return {"nudge": recommendations.nudge_message}
+    except Exception as e:
+        logging.error(f"Nudges error: {str(e)}")
+        return {"nudge": "Ready for your next Arabic lesson? 📚"}
+
+@api_router.get("/review/queue")
+async def get_review_queue(current_user: dict = Depends(get_current_user)):
+    """Get user's review queue with letter details"""
+    try:
+        memory = await get_or_create_learning_memory(current_user["id"])
+        recommendations = await generate_recommendations(current_user["id"])
+        
+        review_items = []
+        
+        # Add primary recommendation
+        if recommendations.next_primary:
+            letter_info = next((l for l in ARABIC_ALPHABET if l["id"] == recommendations.next_primary["unit_id"]), None)
+            if letter_info:
+                review_items.append({
+                    "unit_id": recommendations.next_primary["unit_id"],
+                    "name": letter_info["name"],
+                    "arabic": letter_info["arabic"],
+                    "reason": recommendations.next_primary["reason"],
+                    "priority": "high"
+                })
+        
+        # Add secondary recommendations
+        for secondary in recommendations.next_secondary[:2]:  # Limit to 2
+            letter_info = next((l for l in ARABIC_ALPHABET if l["id"] == secondary["unit_id"]), None)
+            if letter_info:
+                review_items.append({
+                    "unit_id": secondary["unit_id"],
+                    "name": letter_info["name"],
+                    "arabic": letter_info["arabic"],
+                    "reason": secondary["reason"],
+                    "priority": "medium"
+                })
+        
+        return {"review_items": review_items}
+        
+    except Exception as e:
+        logging.error(f"Review queue error: {str(e)}")
+        return {"review_items": []}
+
+@api_router.post("/review/complete")
+async def complete_review(session: ReviewSession, current_user: dict = Depends(get_current_user)):
+    """Complete a review session and update memory"""
+    try:
+        # Calculate score
+        correct_answers = sum(1 for i, answer in enumerate(session.user_answers) 
+                            if answer == session.questions[i].get("correct_answer", -1))
+        total_questions = len(session.questions)
+        score = int((correct_answers / total_questions) * 100) if total_questions > 0 else 0
+        
+        passed = score >= 80
+        xp_earned = 15 if passed else 5
+        
+        # Update memory
+        memory = await get_or_create_learning_memory(current_user["id"])
+        
+        # Add quiz score
+        quiz_score = QuizScore(
+            unit_id=session.unit_id,
+            score=score,
+            taken_at=datetime.now(timezone.utc)
+        )
+        memory.last_quiz_scores.append(quiz_score)
+        if len(memory.last_quiz_scores) > 10:
+            memory.last_quiz_scores = memory.last_quiz_scores[-10:]
+        
+        # Update strengths/weaknesses
+        memory_item = MemoryItem(
+            unit_id=session.unit_id,
+            type=session.unit_type,
+            score=score,
+            updated_at=datetime.now(timezone.utc)
+        )
+        
+        if passed:
+            # Remove from weaknesses, add to strengths
+            memory.weaknesses = [w for w in memory.weaknesses if w.unit_id != session.unit_id]
+            existing_strength = next((s for s in memory.strengths if s.unit_id == session.unit_id), None)
+            if existing_strength:
+                existing_strength.score = max(existing_strength.score, score)
+                existing_strength.updated_at = datetime.now(timezone.utc)
+            else:
+                memory.strengths.append(memory_item)
+        else:
+            # Update weakness
+            existing_weakness = next((w for w in memory.weaknesses if w.unit_id == session.unit_id), None)
+            if existing_weakness:
+                existing_weakness.score = score
+                existing_weakness.updated_at = datetime.now(timezone.utc)
+            else:
+                memory.weaknesses.append(memory_item)
+        
+        # Update user XP
+        if passed:
+            current_user_data = await db.users.find_one({"id": current_user["id"]})
+            new_xp = current_user_data.get("total_xp", 0) + xp_earned
+            new_level = (new_xp // 100) + 1
+            
+            await db.users.update_one(
+                {"id": current_user["id"]},
+                {"$set": {"total_xp": new_xp, "current_level": new_level}}
+            )
+        
+        # Invalidate recommendations cache
+        cache_key = f"recommendations_{current_user['id']}"
+        if cache_key in recommendations_cache:
+            del recommendations_cache[cache_key]
+        
+        await update_learning_memory(current_user["id"], memory)
+        
+        message = "Excellent! Review completed successfully!" if passed else "Good effort! Keep practicing this letter."
+        
+        return ReviewResult(
+            score=score,
+            passed=passed,
+            xp_earned=xp_earned,
+            message=message
+        )
+        
+    except Exception as e:
+        logging.error(f"Review completion error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to complete review")
+
 # Include router
 app.include_router(api_router)
 
@@ -889,12 +1306,29 @@ logger = logging.getLogger(__name__)
 async def shutdown_db_client():
     client.close()
 
-# Seed data on startup
+# Phase 2.2: Database Initialization
 @app.on_event("startup")
 async def seed_database():
-    """Seed the database with initial data"""
+    """Seed the database with initial data and create indexes"""
+    # Create indexes for performance
+    try:
+        # User learning memory indexes
+        await db.user_learning_memory.create_index("user_id")
+        await db.user_learning_memory.create_index([("user_id", 1), ("last_seen", -1)])
+        
+        # Progress indexes
+        await db.progress.create_index([("user_id", 1), ("letter_id", 1)])
+        
+        # Chat history indexes
+        await db.ai_tutor_chats.create_index([("user_id", 1), ("created_at", -1)])
+        
+        logger.info("Created database indexes for Phase 2.2")
+    except Exception as e:
+        logger.warning(f"Index creation warning: {str(e)}")
+    
+    # Seed Arabic alphabet lessons if not exists
     lesson_count = await db.lessons.count_documents({})
     if lesson_count == 0:
         lesson_documents = [prepare_for_mongo(letter) for letter in ARABIC_ALPHABET]
         await db.lessons.insert_many(lesson_documents)
-        logger.info("Seeded Arabic alphabet lessons with Islamic context")
+        logger.info("Seeded Arabic alphabet lessons with enhanced Islamic context")
