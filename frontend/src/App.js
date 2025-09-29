@@ -1298,7 +1298,7 @@ const LessonPlayer = () => {
               <p className="text-lg sm:text-xl text-slate-600">"{letter.transliteration}"</p>
               
               <Button 
-                onClick={() => playAudio(letter.pronunciation)}
+                onClick={() => playAudio(letter.arabic, "letter")}
                 disabled={isPlaying}
                 className="bg-blue-600 hover:bg-blue-700 min-h-[44px]"
                 data-testid="play-pronunciation"
