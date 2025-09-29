@@ -363,14 +363,34 @@ async def process_session(request: Request, response: Response):
 
 @api_router.post("/auth/logout")
 async def logout(request: Request, response: Response, current_user: dict = Depends(get_current_user)):
-    """Logout user and clear session"""
-    # Clear session from database
-    await db.sessions.delete_many({"user_id": current_user["id"]})
-    
-    # Clear cookie
-    response.delete_cookie("session_token", path="/")
-    
-    return {"message": "Logged out successfully"}
+    """Logout user and clear all sessions"""
+    try:
+        # Clear all sessions from database for this user
+        await db.sessions.delete_many({"user_id": current_user["id"]})
+        
+        # Clear session cookie
+        response.delete_cookie("session_token", path="/", secure=True, samesite="none")
+        
+        # Also clear any other potential cookies
+        response.delete_cookie("session_token", path="/")
+        
+        # Invalidate current JWT by adding to blacklist (optional enhancement)
+        token = request.headers.get("authorization", "").replace("Bearer ", "")
+        if token:
+            # Store blacklisted token with expiry
+            blacklist_entry = {
+                "token": token,
+                "user_id": current_user["id"],
+                "blacklisted_at": datetime.now(timezone.utc).isoformat(),
+                "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+            }
+            await db.blacklisted_tokens.insert_one(blacklist_entry)
+        
+        return {"message": "Logged out successfully"}
+        
+    except Exception as e:
+        logging.error(f"Logout error: {str(e)}")
+        return {"message": "Logged out successfully"}  # Still return success to user
 
 @api_router.get("/auth/me", response_model=User)
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
