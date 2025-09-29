@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import axios from "axios";
 import "./App.css";
@@ -9,6 +9,8 @@ import { Badge } from "./components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./components/ui/dialog";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
+import { Textarea } from "./components/ui/textarea";
+import { ScrollArea } from "./components/ui/scroll-area";
 import { toast, Toaster } from "sonner";
 import { 
   ChevronLeft, 
@@ -23,13 +25,19 @@ import {
   Check,
   X,
   RotateCcw,
-  AlertTriangle
+  AlertTriangle,
+  MessageCircle,
+  Mic,
+  Send,
+  Bot,
+  Lightbulb,
+  MicOff
 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Auth context
+// Auth context (unchanged from previous implementation)
 const AuthContext = React.createContext();
 
 const useAuth = () => {
@@ -228,7 +236,7 @@ const AppRoutes = () => {
   );
 };
 
-// Landing Page with Auth
+// Landing Page with Auth (unchanged from previous implementation)
 const LandingPage = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
@@ -254,7 +262,7 @@ const LandingPage = () => {
                 onClick={() => setShowLogin(true)}
                 variant="outline"
                 size="sm"
-                className="border-blue-300 text-blue-700 hover:bg-blue-50 text-xs sm:text-sm px-2 sm:px-4"
+                className="border-blue-300 text-blue-700 hover:bg-blue-50 text-xs sm:text-sm px-2 sm:px-4 min-h-[44px]"
                 data-testid="login-button"
               >
                 Login
@@ -262,7 +270,7 @@ const LandingPage = () => {
               <Button 
                 onClick={() => setShowRegister(true)}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm px-2 sm:px-4"
+                className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm px-2 sm:px-4 min-h-[44px]"
                 data-testid="register-button"
               >
                 Get Started
@@ -278,7 +286,7 @@ const LandingPage = () => {
           Master Arabic for the Quran
         </h2>
         <p className="text-base sm:text-xl text-slate-600 mb-8 sm:mb-12 max-w-2xl mx-auto px-4">
-          Learn the Arabic alphabet with interactive lessons, pronunciation practice, 
+          Learn the Arabic alphabet with AI tutoring, interactive lessons, pronunciation practice, 
           and gamified progress tracking designed for English-speaking Muslims.
         </p>
         
@@ -301,14 +309,14 @@ const LandingPage = () => {
           <Card className="border-slate-200 bg-white/80">
             <CardHeader className="text-center pb-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-xl mx-auto mb-3 sm:mb-4 flex items-center justify-center">
-                <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
               </div>
-              <CardTitle className="text-slate-900 text-lg sm:text-xl">Audio Practice</CardTitle>
+              <CardTitle className="text-slate-900 text-lg sm:text-xl">AI Tutor</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-600 text-sm sm:text-base">
-                Listen to native Arabic pronunciation and practice with 
-                high-quality text-to-speech technology.
+                Get personalized help from Ustaz Ahmed, your AI Arabic tutor with 
+                Islamic context and pronunciation guidance.
               </p>
             </CardContent>
           </Card>
@@ -332,7 +340,7 @@ const LandingPage = () => {
         <Button 
           onClick={() => setShowRegister(true)}
           size="lg"
-          className="mt-8 sm:mt-12 bg-blue-600 hover:bg-blue-700 text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-6"
+          className="mt-8 sm:mt-12 bg-blue-600 hover:bg-blue-700 text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-6 min-h-[44px]"
           data-testid="hero-get-started-button"
         >
           Start Learning Arabic
@@ -389,7 +397,7 @@ const LoginDialog = ({ open, onClose }) => {
           <Button
             onClick={handleGoogleLogin}
             variant="outline"
-            className="w-full"
+            className="w-full min-h-[44px]"
             data-testid="google-login-button"
           >
             <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
@@ -436,7 +444,7 @@ const LoginDialog = ({ open, onClose }) => {
             </div>
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full min-h-[44px]" 
               disabled={loading}
               data-testid="login-submit"
             >
@@ -495,7 +503,7 @@ const RegisterDialog = ({ open, onClose }) => {
           <Button
             onClick={handleGoogleRegister}
             variant="outline"
-            className="w-full"
+            className="w-full min-h-[44px]"
             data-testid="google-register-button"
           >
             <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
@@ -552,7 +560,7 @@ const RegisterDialog = ({ open, onClose }) => {
             </div>
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full min-h-[44px]" 
               disabled={loading}
               data-testid="register-submit"
             >
@@ -565,12 +573,304 @@ const RegisterDialog = ({ open, onClose }) => {
   );
 };
 
-// Dashboard Component - Mobile Optimized
+// AI Tutor Chat Component
+const AITutorChat = ({ open, onClose, lessonId, currentLetter }) => {
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
+
+  const sendMessage = async () => {
+    if (!message.trim() || isLoading) return;
+    
+    const userMessage = message.trim();
+    setMessage("");
+    setIsLoading(true);
+    
+    // Add user message to chat
+    setChatHistory(prev => [...prev, { type: 'user', content: userMessage }]);
+    
+    try {
+      const response = await axios.post(`${API}/ai-tutor`, {
+        message: userMessage,
+        lesson_id: lessonId,
+        context_type: "lesson"
+      });
+      
+      // Add AI response to chat
+      setChatHistory(prev => [...prev, { 
+        type: 'ai', 
+        content: response.data.response,
+        suggestions: response.data.suggestions || [],
+        recommendations: response.data.lesson_recommendations || []
+      }]);
+      
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setChatHistory(prev => [...prev, { 
+        type: 'error', 
+        content: 'Sorry, I encountered an error. Please try again.' 
+      }]);
+      toast.error("Failed to send message");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setMessage(suggestion);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center text-emerald-900">
+            <Bot className="w-5 h-5 mr-2" />
+            Ustaz Ahmed - AI Arabic Tutor
+          </DialogTitle>
+          <DialogDescription className="text-emerald-700">
+            {currentLetter ? 
+              `Get help with letter ${currentLetter.name} (${currentLetter.arabic}) and Islamic context` :
+              "Ask questions about Arabic letters, pronunciation, or Islamic context"
+            }
+          </DialogDescription>
+        </DialogHeader>
+        
+        <ScrollArea className="flex-1 pr-4">
+          <div className="space-y-4 py-4">
+            {chatHistory.length === 0 && (
+              <div className="text-center text-emerald-600 py-8">
+                <Bot className="w-12 h-12 mx-auto mb-4 text-emerald-400" />
+                <p className="mb-2">Assalamu alaykum! I'm Ustaz Ahmed, your Arabic tutor.</p>
+                {currentLetter ? (
+                  <div className="space-y-2">
+                    <p className="text-sm">Let's learn about letter {currentLetter.name} ({currentLetter.arabic})</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSuggestionClick(`What is the Quranic example for ${currentLetter.name}?`)}
+                        className="text-xs"
+                      >
+                        Quranic examples
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSuggestionClick(`How do I pronounce ${currentLetter.arabic}?`)}
+                        className="text-xs"
+                      >
+                        Pronunciation help
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm mt-2">Ask me anything about Arabic letters or Islamic context!</p>
+                )}
+              </div>
+            )}
+            
+            {chatHistory.map((msg, index) => (
+              <div key={index} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] rounded-lg p-3 ${
+                  msg.type === 'user' 
+                    ? 'bg-emerald-600 text-white' 
+                    : msg.type === 'error'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  
+                  {/* Show suggestions if available */}
+                  {msg.suggestions && msg.suggestions.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs font-semibold flex items-center">
+                        <Lightbulb className="w-3 h-3 mr-1" />
+                        Suggestions:
+                      </p>
+                      {msg.suggestions.map((suggestion, idx) => (
+                        <Button
+                          key={idx}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          className="text-xs mr-2 mb-2"
+                        >
+                          {suggestion}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 rounded-lg p-3">
+                  <div className="flex items-center space-x-1">
+                    <Bot className="w-4 h-4 text-emerald-600" />
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-75"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+        
+        <div className="flex space-x-2 pt-4 border-t">
+          <Textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Ask about Arabic letters, pronunciation, or Islamic context..."
+            className="flex-1 min-h-[40px] max-h-[120px] resize-none"
+            data-testid="ai-chat-input"
+          />
+          <Button 
+            onClick={sendMessage}
+            disabled={!message.trim() || isLoading}
+            className="bg-emerald-600 hover:bg-emerald-700 min-h-[44px]"
+            data-testid="send-ai-message"
+          >
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Voice Recording Component
+const VoiceRecorder = ({ targetWord, lessonId, onFeedback }) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const mediaRecorder = useRef(null);
+  const audioChunks = useRef([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder.current = new MediaRecorder(stream);
+      audioChunks.current = [];
+      
+      mediaRecorder.current.ondataavailable = (event) => {
+        audioChunks.current.push(event.data);
+      };
+      
+      mediaRecorder.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunks.current, { type: 'audio/wav' });
+        await sendAudioForFeedback(audioBlob);
+        
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      mediaRecorder.current.start();
+      setIsRecording(true);
+      toast.success("Recording started - say the word clearly!");
+      
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      toast.error("Could not access microphone");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder.current && isRecording) {
+      mediaRecorder.current.stop();
+      setIsRecording(false);
+      setIsProcessing(true);
+    }
+  };
+
+  const sendAudioForFeedback = async (audioBlob) => {
+    try {
+      const formData = new FormData();
+      formData.append('audio_file', audioBlob, 'recording.wav');
+      formData.append('target_word', targetWord);
+      if (lessonId) {
+        formData.append('lesson_id', lessonId.toString());
+      }
+      
+      const response = await axios.post(`${API}/ai-tutor/voice-feedback`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      onFeedback(response.data);
+      
+    } catch (error) {
+      console.error("Error processing audio:", error);
+      toast.error("Voice analysis failed - please try again");
+      onFeedback({
+        transcription: "",
+        target_word: targetWord,
+        match: false,
+        confidence: 0,
+        feedback: "Voice analysis temporarily unavailable. Practice by listening to the audio.",
+        pronunciation_tips: ["Listen to the audio example", "Practice slowly", "Try again later"]
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center space-y-3">
+      <Button
+        onClick={isRecording ? stopRecording : startRecording}
+        disabled={isProcessing}
+        variant={isRecording ? "destructive" : "outline"}
+        className={`min-h-[44px] ${isRecording ? 'animate-pulse' : ''}`}
+        data-testid="voice-recorder-button"
+      >
+        {isProcessing ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            Analyzing...
+          </>
+        ) : isRecording ? (
+          <>
+            <MicOff className="w-4 h-4 mr-2" />
+            Stop Recording
+          </>
+        ) : (
+          <>
+            <Mic className="w-4 h-4 mr-2" />
+            Record Pronunciation
+          </>
+        )}
+      </Button>
+      
+      {isRecording && (
+        <p className="text-sm text-emerald-600 animate-pulse">
+          🔴 Recording... Say "{targetWord}" clearly
+        </p>
+      )}
+    </div>
+  );
+};
+
+// Dashboard Component - Mobile Optimized (unchanged from previous)
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [lessons, setLessons] = useState([]);
   const [progress, setProgress] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAITutor, setShowAITutor] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -633,6 +933,17 @@ const Dashboard = () => {
             </div>
             
             <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+              <Button 
+                onClick={() => setShowAITutor(true)}
+                variant="outline" 
+                size="sm"
+                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 min-h-[44px]"
+                data-testid="ai-tutor-button"
+              >
+                <Bot className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">AI Tutor</span>
+              </Button>
+              
               <div className="hidden sm:block text-right">
                 <p className="text-sm text-slate-600">Progress</p>
                 <div className="flex items-center space-x-2">
@@ -657,7 +968,7 @@ const Dashboard = () => {
                 onClick={logout}
                 variant="outline" 
                 size="sm"
-                className="border-slate-300 p-2"
+                className="border-slate-300 p-2 min-h-[44px]"
                 data-testid="logout-button"
               >
                 <LogOut className="w-4 h-4" />
@@ -791,16 +1102,26 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Tutor Dialog */}
+      <AITutorChat 
+        open={showAITutor} 
+        onClose={() => setShowAITutor(false)}
+        lessonId={null}
+        currentLetter={null}
+      />
     </div>
   );
 };
 
-// Enhanced Lesson Player with Improved Audio
+// Enhanced Lesson Player with AI Tutor and Voice Practice
 const LessonPlayer = () => {
   const [letter, setLetter] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentAudio, setCurrentAudio] = useState(null);
   const [audioSource, setAudioSource] = useState('');
+  const [showAITutor, setShowAITutor] = useState(false);
+  const [voiceFeedback, setVoiceFeedback] = useState(null);
   
   const letterId = parseInt(window.location.pathname.split('/')[2]);
 
@@ -897,6 +1218,15 @@ const LessonPlayer = () => {
     }
   };
 
+  const handleVoiceFeedback = (feedback) => {
+    setVoiceFeedback(feedback);
+    if (feedback.match) {
+      toast.success("Great pronunciation! 🎉");
+    } else {
+      toast.info("Keep practicing! Check the tips below.");
+    }
+  };
+
   if (!letter) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
@@ -916,7 +1246,7 @@ const LessonPlayer = () => {
                 variant="outline" 
                 size="sm"
                 onClick={() => window.location.href = '/'}
-                className="flex-shrink-0"
+                className="flex-shrink-0 min-h-[44px]"
                 data-testid="back-to-home"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
@@ -929,6 +1259,17 @@ const LessonPlayer = () => {
                 <p className="text-sm text-slate-600 truncate">{letter.arabic} - {letter.transliteration}</p>
               </div>
             </div>
+            
+            <Button 
+              onClick={() => setShowAITutor(true)}
+              variant="outline" 
+              size="sm"
+              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 min-h-[44px]"
+              data-testid="lesson-ai-tutor"
+            >
+              <Bot className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Ask Tutor</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -948,7 +1289,7 @@ const LessonPlayer = () => {
               <Button 
                 onClick={() => playAudio(letter.pronunciation)}
                 disabled={isPlaying}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 min-h-[44px]"
                 data-testid="play-pronunciation"
               >
                 <Volume2 className="w-4 h-4 mr-2" />
@@ -979,11 +1320,90 @@ const LessonPlayer = () => {
               onClick={() => playAudio(letter.example_word)}
               disabled={isPlaying}
               variant="outline"
+              className="min-h-[44px]"
               data-testid="play-example"
             >
               <Play className="w-4 h-4 mr-2" />
               Play Example
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Islamic Context */}
+        {letter.islamic_context && (
+          <Card className="mb-6 sm:mb-8 border-emerald-200 bg-emerald-50">
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl text-emerald-900">Islamic Context</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-emerald-800 mb-4">{letter.islamic_context}</p>
+              {letter.quranic_examples && letter.quranic_examples.length > 0 && (
+                <div>
+                  <p className="font-semibold text-emerald-900 mb-2">Quranic Examples:</p>
+                  <div className="space-y-1">
+                    {letter.quranic_examples.map((example, idx) => (
+                      <p key={idx} className="text-emerald-700 arabic-text text-lg">
+                        {example}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Voice Practice Section */}
+        <Card className="mb-6 sm:mb-8 border-yellow-200 bg-yellow-50">
+          <CardHeader>
+            <CardTitle className="text-lg sm:text-xl text-yellow-900">Voice Practice</CardTitle>
+            <CardDescription className="text-yellow-800">
+              Practice pronouncing "{letter.name}" and get AI feedback
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <VoiceRecorder 
+              targetWord={letter.pronunciation}
+              lessonId={letterId}
+              onFeedback={handleVoiceFeedback}
+            />
+            
+            {voiceFeedback && (
+              <div className="mt-6 p-4 rounded-lg bg-white border">
+                <div className="flex items-center justify-center mb-3">
+                  {voiceFeedback.match ? (
+                    <Check className="w-6 h-6 text-green-600 mr-2" />
+                  ) : (
+                    <X className="w-6 h-6 text-red-600 mr-2" />
+                  )}
+                  <p className="font-semibold">
+                    {voiceFeedback.match ? "Excellent!" : "Keep Practicing"}
+                  </p>
+                </div>
+                
+                <p className="text-sm text-slate-600 mb-3">{voiceFeedback.feedback}</p>
+                
+                {voiceFeedback.transcription && (
+                  <p className="text-sm text-slate-500 mb-3">
+                    Heard: "{voiceFeedback.transcription}"
+                  </p>
+                )}
+                
+                {voiceFeedback.pronunciation_tips && voiceFeedback.pronunciation_tips.length > 0 && (
+                  <div className="text-left">
+                    <p className="font-semibold text-sm mb-2">Pronunciation Tips:</p>
+                    <ul className="text-sm text-slate-600 space-y-1">
+                      {voiceFeedback.pronunciation_tips.map((tip, idx) => (
+                        <li key={idx} className="flex items-start">
+                          <Lightbulb className="w-3 h-3 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" />
+                          {tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -993,7 +1413,7 @@ const LessonPlayer = () => {
             onClick={() => navigateToLetter('prev')}
             disabled={letterId === 1}
             variant="outline"
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto min-h-[44px]"
             data-testid="prev-letter"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
@@ -1002,7 +1422,7 @@ const LessonPlayer = () => {
           
           <Button 
             onClick={markAsCompleted}
-            className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+            className="bg-green-600 hover:bg-green-700 w-full sm:w-auto min-h-[44px]"
             data-testid="complete-lesson"
           >
             <Check className="w-4 h-4 mr-2" />
@@ -1013,7 +1433,7 @@ const LessonPlayer = () => {
             onClick={() => navigateToLetter('next')}
             disabled={letterId === 28}
             variant="outline"
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto min-h-[44px]"
             data-testid="next-letter"
           >
             Next
@@ -1021,11 +1441,19 @@ const LessonPlayer = () => {
           </Button>
         </div>
       </div>
+
+      {/* AI Tutor Dialog */}
+      <AITutorChat 
+        open={showAITutor} 
+        onClose={() => setShowAITutor(false)}
+        lessonId={letterId}
+        currentLetter={letter}
+      />
     </div>
   );
 };
 
-// Enhanced Quiz with Retry Logic and Score Thresholds
+// Enhanced Quiz with Retry Logic and Score Thresholds (unchanged from previous)
 const QuizPage = () => {
   const [letter, setLetter] = useState(null);
   const [options, setOptions] = useState([]);
@@ -1154,7 +1582,7 @@ const QuizPage = () => {
               <Button
                 onClick={submitAnswer}
                 disabled={!selectedAnswer}
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700 min-h-[44px]"
                 data-testid="submit-quiz"
               >
                 Submit Answer
@@ -1206,7 +1634,7 @@ const QuizPage = () => {
                     <Button
                       onClick={retryQuiz}
                       variant="outline"
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto min-h-[44px]"
                       data-testid="retry-quiz"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
@@ -1215,7 +1643,7 @@ const QuizPage = () => {
                     <Button
                       onClick={nextAction}
                       variant="outline"
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto min-h-[44px]"
                       data-testid="review-lesson"
                     >
                       Review Lesson
@@ -1226,7 +1654,7 @@ const QuizPage = () => {
                 {result.can_proceed && (
                   <Button
                     onClick={nextAction}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    className="w-full bg-blue-600 hover:bg-blue-700 min-h-[44px]"
                     data-testid="quiz-continue"
                   >
                     {letterId < 28 ? "Next Letter" : "Complete Course"}
