@@ -31,7 +31,16 @@ import {
   Send,
   Bot,
   Lightbulb,
-  MicOff
+  MicOff,
+  Clock,
+  Zap,
+  Target,
+  BookMarked,
+  TrendingUp,
+  AlertCircle,
+  RefreshCw,
+  Award,
+  Calendar
 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -232,6 +241,14 @@ const AppRoutes = () => {
         path="/quiz/:letterId" 
         element={user ? <QuizPage /> : <Navigate to="/" />} 
       />
+      <Route 
+        path="/review" 
+        element={user ? <ReviewMode /> : <Navigate to="/" />} 
+      />
+      <Route 
+        path="/admin" 
+        element={user ? <AdminPanel /> : <Navigate to="/" />} 
+      />
     </Routes>
   );
 };
@@ -311,12 +328,12 @@ const LandingPage = () => {
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-xl mx-auto mb-3 sm:mb-4 flex items-center justify-center">
                 <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
               </div>
-              <CardTitle className="text-slate-900 text-lg sm:text-xl">AI Tutor</CardTitle>
+              <CardTitle className="text-slate-900 text-lg sm:text-xl">AI Personalization</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-600 text-sm sm:text-base">
-                Get personalized help from Ustaz Ahmed, your AI Arabic tutor with 
-                Islamic context and pronunciation guidance.
+                Adaptive learning with personalized recommendations, memory tracking, 
+                and intelligent review suggestions.
               </p>
             </CardContent>
           </Card>
@@ -326,12 +343,12 @@ const LandingPage = () => {
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-xl mx-auto mb-3 sm:mb-4 flex items-center justify-center">
                 <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
               </div>
-              <CardTitle className="text-slate-900 text-lg sm:text-xl">Progress Tracking</CardTitle>
+              <CardTitle className="text-slate-900 text-lg sm:text-xl">Smart Progress</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-600 text-sm sm:text-base">
-                Earn XP, unlock achievements, and track your progress 
-                through gamified learning experiences.
+                Intelligent progress tracking with weakness detection, 
+                review queues, and streak motivation.
               </p>
             </CardContent>
           </Card>
@@ -354,7 +371,7 @@ const LandingPage = () => {
   );
 };
 
-// Login Dialog with Google OAuth
+// Login Dialog with Google OAuth (unchanged)
 const LoginDialog = ({ open, onClose }) => {
   const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
@@ -393,7 +410,6 @@ const LoginDialog = ({ open, onClose }) => {
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Google OAuth Button */}
           <Button
             onClick={handleGoogleLogin}
             variant="outline"
@@ -418,7 +434,6 @@ const LoginDialog = ({ open, onClose }) => {
             </div>
           </div>
 
-          {/* Email/Password Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <Label htmlFor="email">Email</Label>
@@ -457,7 +472,7 @@ const LoginDialog = ({ open, onClose }) => {
   );
 };
 
-// Register Dialog with Google OAuth
+// Register Dialog with Google OAuth (unchanged)
 const RegisterDialog = ({ open, onClose }) => {
   const { login, loginWithGoogle } = useAuth();
   const [formData, setFormData] = useState({
@@ -499,7 +514,6 @@ const RegisterDialog = ({ open, onClose }) => {
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Google OAuth Button */}
           <Button
             onClick={handleGoogleRegister}
             variant="outline"
@@ -524,7 +538,6 @@ const RegisterDialog = ({ open, onClose }) => {
             </div>
           </div>
 
-          {/* Registration Form */}
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
               <Label htmlFor="full_name">Full Name</Label>
@@ -570,6 +583,60 @@ const RegisterDialog = ({ open, onClose }) => {
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Personalized Notification Banner Component
+const NotificationBanner = ({ onDismiss }) => {
+  const [nudge, setNudge] = useState("");
+  const [dismissed, setDismissed] = useState(localStorage.getItem('nudge_dismissed') === 'true');
+
+  useEffect(() => {
+    if (!dismissed) {
+      fetchNudge();
+    }
+  }, [dismissed]);
+
+  const fetchNudge = async () => {
+    try {
+      const response = await axios.get(`${API}/personalize/nudges`);
+      setNudge(response.data.nudge);
+    } catch (error) {
+      console.error("Error fetching nudge:", error);
+    }
+  };
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    localStorage.setItem('nudge_dismissed', 'true');
+    // Reset after 4 hours
+    setTimeout(() => {
+      localStorage.removeItem('nudge_dismissed');
+    }, 4 * 60 * 60 * 1000);
+    
+    if (onDismiss) onDismiss();
+  };
+
+  if (dismissed || !nudge) return null;
+
+  return (
+    <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg relative">
+      <div className="flex items-start space-x-3">
+        <Lightbulb className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-emerald-800 font-medium">{nudge}</p>
+        </div>
+        <Button
+          onClick={handleDismiss}
+          variant="ghost"
+          size="sm"
+          className="flex-shrink-0 h-6 w-6 p-0 text-emerald-600 hover:text-emerald-800"
+          data-testid="dismiss-nudge"
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
   );
 };
 
@@ -621,16 +688,13 @@ const AITutorChat = ({ open, onClose, lessonId, currentLetter }) => {
 
   const processVoiceMessage = async (audioBlob) => {
     try {
-      // For now, we'll use a placeholder for voice message processing
-      // In a full implementation, you'd send the audio to a speech-to-text service
       const voiceMessage = `[Voice message: ${Math.floor(audioBlob.size / 1000)}KB audio]`;
       
       setChatHistory(prev => [...prev, { type: 'user', content: voiceMessage, isVoice: true }]);
       
-      // Send a contextual response about voice messages
       const contextualResponse = currentLetter ? 
-        `I heard your voice message! Are you asking about the letter ${currentLetter.name} (${currentLetter.arabic})? Please type your question so I can give you the best help with Arabic pronunciation and Islamic context.` :
-        `I received your voice message! Please type your question about Arabic letters, and I'll provide detailed pronunciation guidance and Islamic context.`;
+        `I heard your voice message about ${currentLetter.name} (${currentLetter.arabic})! While I can hear your voice, I can give you the best Arabic pronunciation help if you type your question. What would you like to know about this letter?` :
+        `I received your voice message! I'm here to help with Arabic learning. Please type your question and I'll provide detailed pronunciation guidance and Islamic context.`;
       
       setChatHistory(prev => [...prev, { 
         type: 'ai', 
@@ -721,7 +785,7 @@ const AITutorChat = ({ open, onClose, lessonId, currentLetter }) => {
             {chatHistory.length === 0 && (
               <div className="text-center text-emerald-600 py-8">
                 <Bot className="w-12 h-12 mx-auto mb-4 text-emerald-400" />
-                <p className="mb-2">Assalamu alaykum! I'm Ustaz Ahmed, your Arabic tutor.</p>
+                <p className="mb-2">Assalamu alaykum! I'm Ustaz Ahmed, your personalized Arabic tutor.</p>
                 {currentLetter ? (
                   <div className="space-y-2">
                     <p className="text-sm">Let's learn about letter {currentLetter.name} ({currentLetter.arabic})</p>
@@ -745,7 +809,7 @@ const AITutorChat = ({ open, onClose, lessonId, currentLetter }) => {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm mt-2">Ask me anything about Arabic letters or Islamic context!</p>
+                  <p className="text-sm mt-2">I know your learning progress and can give personalized advice!</p>
                 )}
               </div>
             )}
@@ -767,7 +831,6 @@ const AITutorChat = ({ open, onClose, lessonId, currentLetter }) => {
                   )}
                   <p className="whitespace-pre-wrap">{msg.content}</p>
                   
-                  {/* Show suggestions if available */}
                   {msg.suggestions && msg.suggestions.length > 0 && (
                     <div className="mt-3 space-y-2">
                       <p className="text-xs font-semibold flex items-center">
@@ -1056,7 +1119,7 @@ const VoiceRecorder = ({ targetWord, lessonId, onFeedback }) => {
   );
 };
 
-// Dashboard Component - Mobile Optimized (unchanged from previous)
+// Enhanced Dashboard Component with Personalization
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [lessons, setLessons] = useState([]);
@@ -1126,6 +1189,17 @@ const Dashboard = () => {
             
             <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
               <Button 
+                onClick={() => window.location.href = '/review'}
+                variant="outline" 
+                size="sm"
+                className="border-yellow-300 text-yellow-700 hover:bg-yellow-50 min-h-[44px]"
+                data-testid="review-button"
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Review</span>
+              </Button>
+              
+              <Button 
                 onClick={() => setShowAITutor(true)}
                 variant="outline" 
                 size="sm"
@@ -1181,6 +1255,9 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 sm:pb-8">
+        {/* Personalized Notification Banner */}
+        <NotificationBanner />
+
         {/* Progress Summary */}
         <Card className="mb-6 sm:mb-8 border-slate-200 bg-white/80">
           <CardHeader>
@@ -1189,7 +1266,7 @@ const Dashboard = () => {
               Your Learning Journey
             </CardTitle>
             <CardDescription className="text-sm sm:text-base">
-              Master all 28 Arabic letters to complete the alphabet course
+              Master all 28 Arabic letters with personalized AI guidance
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1306,7 +1383,415 @@ const Dashboard = () => {
   );
 };
 
-// Enhanced Lesson Player with Fixed Audio System
+// Phase 2.2: Review Mode Component
+const ReviewMode = () => {
+  const [reviewItems, setReviewItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentReview, setCurrentReview] = useState(null);
+  const [quizData, setQuizData] = useState(null);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [showResult, setShowResult] = useState(false);
+  const [reviewResult, setReviewResult] = useState(null);
+  const { playAudio, isPlaying } = useAudioSystem();
+
+  useEffect(() => {
+    fetchReviewQueue();
+  }, []);
+
+  const fetchReviewQueue = async () => {
+    try {
+      const response = await axios.get(`${API}/review/queue`);
+      setReviewItems(response.data.review_items || []);
+    } catch (error) {
+      toast.error("Failed to load review queue");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startReview = async (item) => {
+    try {
+      // Generate mini-quiz for this letter
+      const [letterRes, lessonsRes] = await Promise.all([
+        axios.get(`${API}/lessons/${item.unit_id}`),
+        axios.get(`${API}/lessons`)
+      ]);
+      
+      const targetLetter = letterRes.data;
+      const allLetters = lessonsRes.data;
+      
+      // Generate 3 wrong options
+      const wrongOptions = allLetters
+        .filter(l => l.id !== item.unit_id)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 2);
+      
+      const quizOptions = [targetLetter, ...wrongOptions]
+        .sort(() => 0.5 - Math.random());
+      
+      setCurrentReview(item);
+      setQuizData({
+        target_letter: targetLetter,
+        options: quizOptions,
+        question: `Which letter makes the sound "${targetLetter.pronunciation}"?`
+      });
+      
+    } catch (error) {
+      toast.error("Failed to start review");
+    }
+  };
+
+  const submitReviewAnswer = async () => {
+    if (!selectedAnswer || !currentReview) return;
+    
+    try {
+      const correct = selectedAnswer === quizData.target_letter.id;
+      const score = correct ? 100 : 0;
+      
+      // Submit review completion
+      const response = await axios.post(`${API}/review/complete`, {
+        unit_id: currentReview.unit_id,
+        unit_type: "letter",
+        questions: [{
+          question: quizData.question,
+          correct_answer: quizData.target_letter.id,
+          options: quizData.options.map(o => o.id)
+        }],
+        user_answers: [selectedAnswer]
+      });
+      
+      setReviewResult(response.data);
+      setShowResult(true);
+      
+    } catch (error) {
+      toast.error("Failed to submit review");
+    }
+  };
+
+  const completeReview = () => {
+    // Reset review state
+    setCurrentReview(null);
+    setQuizData(null);
+    setSelectedAnswer(null);
+    setShowResult(false);
+    setReviewResult(null);
+    
+    // Refresh review queue
+    fetchReviewQueue();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center space-x-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.location.href = '/'}
+              className="min-h-[44px]"
+              data-testid="back-to-dashboard"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Dashboard
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Review Mode</h1>
+              <p className="text-sm text-slate-600">Practice letters that need attention</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {!currentReview ? (
+          <>
+            {/* Review Queue */}
+            {reviewItems.length > 0 ? (
+              <Card className="border-slate-200 bg-white/90">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Target className="w-5 h-5 mr-2 text-yellow-600" />
+                    Letters for Review
+                  </CardTitle>
+                  <CardDescription>
+                    These letters need practice based on your learning patterns
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {reviewItems.map((item, index) => (
+                      <Card 
+                        key={item.unit_id}
+                        className={`border-2 ${item.priority === 'high' ? 'border-red-200 bg-red-50' : 'border-yellow-200 bg-yellow-50'}`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <div className="text-4xl font-bold arabic-text text-slate-900">
+                                {item.arabic}
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-slate-900">{item.name}</h3>
+                                <div className="flex items-center space-x-2">
+                                  <Badge 
+                                    variant={item.priority === 'high' ? 'destructive' : 'default'}
+                                    className="text-xs"
+                                  >
+                                    {item.reason.replace('_', ' ')}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    {item.priority} priority
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              onClick={() => startReview(item)}
+                              className="bg-blue-600 hover:bg-blue-700 min-h-[44px]"
+                              data-testid={`start-review-${item.unit_id}`}
+                            >
+                              Start Review
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-slate-200 bg-white/90">
+                <CardContent className="p-12 text-center">
+                  <Award className="w-16 h-16 mx-auto mb-4 text-green-600" />
+                  <h2 className="text-2xl font-bold text-slate-900 mb-4">Great Job!</h2>
+                  <p className="text-slate-600 mb-6">
+                    No letters need review right now. You're doing excellent!
+                  </p>
+                  <Button
+                    onClick={() => window.location.href = '/'}
+                    className="bg-blue-600 hover:bg-blue-700 min-h-[44px]"
+                  >
+                    Continue Learning
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Review Quiz Interface */}
+            {!showResult ? (
+              <Card className="border-slate-200 bg-white/90">
+                <CardHeader className="text-center">
+                  <CardTitle className="text-xl">Quick Review</CardTitle>
+                  <CardDescription>
+                    {quizData?.question}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6 p-4 bg-slate-50 rounded-lg text-center">
+                    <div className="text-6xl font-bold arabic-text mb-2 text-slate-900">
+                      {quizData?.target_letter.arabic}
+                    </div>
+                    <Button
+                      onClick={() => playAudio(quizData?.target_letter.arabic, "review")}
+                      disabled={isPlaying}
+                      variant="outline"
+                      size="sm"
+                      className="min-h-[44px]"
+                    >
+                      <Volume2 className="w-4 h-4 mr-2" />
+                      {isPlaying ? "Playing..." : "Play Sound"}
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 mb-8">
+                    {quizData?.options.map((option) => (
+                      <Card
+                        key={option.id}
+                        className={`cursor-pointer transition-all border-2 ${
+                          selectedAnswer === option.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                        onClick={() => setSelectedAnswer(option.id)}
+                        data-testid={`review-option-${option.id}`}
+                      >
+                        <CardContent className="p-4 text-center">
+                          <div className="text-3xl font-bold arabic-text">
+                            {option.arabic}
+                          </div>
+                          <p className="text-sm text-slate-600 mt-1">
+                            {option.name}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  
+                  <Button
+                    onClick={submitReviewAnswer}
+                    disabled={!selectedAnswer}
+                    className="w-full bg-blue-600 hover:bg-blue-700 min-h-[44px]"
+                    data-testid="submit-review"
+                  >
+                    Submit Answer
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-slate-200 bg-white/90">
+                <CardContent className="p-12 text-center">
+                  <div className={`w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center ${
+                    reviewResult.passed ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    {reviewResult.passed ? 
+                      <Check className="w-10 h-10 text-green-600" /> :
+                      <X className="w-10 h-10 text-red-600" />
+                    }
+                  </div>
+                  
+                  <h2 className="text-2xl font-bold mb-4">
+                    {reviewResult.passed ? "Review Complete!" : "Keep Practicing"}
+                  </h2>
+                  <p className="text-slate-600 mb-4">{reviewResult.message}</p>
+                  <p className="text-lg font-semibold text-yellow-600 mb-2">
+                    Score: {reviewResult.score}%
+                  </p>
+                  {reviewResult.xp_earned > 0 && (
+                    <p className="text-lg font-semibold text-green-600 mb-6">
+                      +{reviewResult.xp_earned} XP
+                    </p>
+                  )}
+                  
+                  <Button
+                    onClick={completeReview}
+                    className="bg-blue-600 hover:bg-blue-700 min-h-[44px]"
+                    data-testid="complete-review"
+                  >
+                    Continue
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Phase 2.2: Basic Admin Panel
+const AdminPanel = () => {
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, []);
+
+  const fetchMetrics = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/personalization/metrics`);
+      setMetrics(response.data);
+    } catch (error) {
+      toast.error("Failed to load admin metrics");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <div className="flex items-center space-x-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.location.href = '/'}
+              className="min-h-[44px]"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Dashboard
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Admin Analytics</h1>
+              <p className="text-sm text-slate-600">Personalization system metrics</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <Card className="border-slate-200 bg-white/90">
+          <CardHeader>
+            <CardTitle>Personalization Metrics</CardTitle>
+            <CardDescription>System performance and user engagement stats</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {metrics ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600 mb-1">
+                    {metrics.total_users_with_queue || 0}
+                  </div>
+                  <p className="text-sm text-slate-600">Users with Review Queue</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600 mb-1">
+                    {metrics.avg_queue_len || 0}
+                  </div>
+                  <p className="text-sm text-slate-600">Avg Queue Length</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-yellow-600 mb-1">
+                    {metrics.avg_score_last_week || 0}%
+                  </div>
+                  <p className="text-sm text-slate-600">Avg Score (7 days)</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600 mb-1">
+                    {metrics.retry_rate || 0}%
+                  </div>
+                  <p className="text-sm text-slate-600">Quiz Retry Rate</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600 mb-1">
+                    {metrics.tts_error_rate_last_24h || 0}%
+                  </div>
+                  <p className="text-sm text-slate-600">TTS Error Rate (24h)</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-slate-600">No metrics available</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+// Enhanced Lesson Player with Personalization
 const LessonPlayer = () => {
   const [letter, setLetter] = useState(null);
   const [showAITutor, setShowAITutor] = useState(false);
@@ -1463,7 +1948,7 @@ const LessonPlayer = () => {
           </CardContent>
         </Card>
 
-        {/* Islamic Context */}
+        {/* Enhanced Islamic Context with Boosters */}
         {letter.islamic_context && (
           <Card className="mb-6 sm:mb-8 border-emerald-200 bg-emerald-50">
             <CardHeader>
@@ -1472,13 +1957,25 @@ const LessonPlayer = () => {
             <CardContent>
               <p className="text-emerald-800 mb-4">{letter.islamic_context}</p>
               {letter.quranic_examples && letter.quranic_examples.length > 0 && (
-                <div>
+                <div className="mb-4">
                   <p className="font-semibold text-emerald-900 mb-2">Quranic Examples:</p>
                   <div className="space-y-1">
                     {letter.quranic_examples.map((example, idx) => (
                       <p key={idx} className="text-emerald-700 arabic-text text-lg">
                         {example}
                       </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {letter.common_dua_words && letter.common_dua_words.length > 0 && (
+                <div>
+                  <p className="font-semibold text-emerald-900 mb-2">Common in Duas:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {letter.common_dua_words.map((word, idx) => (
+                      <Badge key={idx} variant="outline" className="arabic-text text-emerald-700 border-emerald-300">
+                        {word}
+                      </Badge>
                     ))}
                   </div>
                 </div>
@@ -1519,7 +2016,7 @@ const LessonPlayer = () => {
                 
                 {voiceFeedback.transcription && (
                   <p className="text-sm text-slate-500 mb-3">
-                    Heard: "{voiceFeedback.transcription}"
+                    Analysis: "{voiceFeedback.transcription}"
                   </p>
                 )}
                 
@@ -1587,7 +2084,7 @@ const LessonPlayer = () => {
   );
 };
 
-// Enhanced Quiz with Retry Logic and Score Thresholds (unchanged from previous)
+// Enhanced Quiz with Retry Logic (unchanged from previous)
 const QuizPage = () => {
   const [letter, setLetter] = useState(null);
   const [options, setOptions] = useState([]);
@@ -1611,7 +2108,7 @@ const QuizPage = () => {
       
       setLetter(letterRes.data);
       
-      // Generate quiz options (correct answer + 3 random)
+      // Generate quiz options
       const allLetters = lessonsRes.data;
       const correctLetter = letterRes.data;
       const wrongLetters = allLetters
@@ -1652,7 +2149,6 @@ const QuizPage = () => {
     setShowResult(false);
     setShowRetry(false);
     setResult(null);
-    // Regenerate options
     fetchQuizData();
   };
 
@@ -1664,7 +2160,6 @@ const QuizPage = () => {
         window.location.href = '/';
       }
     } else {
-      // Review mistakes - go back to lesson
       window.location.href = `/lesson/${letterId}`;
     }
   };
