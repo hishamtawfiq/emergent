@@ -1328,7 +1328,7 @@ const LessonPlayer = () => {
             </div>
             <p className="text-base sm:text-lg text-slate-600 mb-4">{letter.example_meaning}</p>
             <Button 
-              onClick={() => playAudio(letter.example_word)}
+              onClick={() => playAudio(letter.example_word, "example word")}
               disabled={isPlaying}
               variant="outline"
               className="min-h-[44px]"
