@@ -14,8 +14,7 @@ from typing import List, Optional
 import uuid
 from passlib.context import CryptContext
 from emergentintegrations.llm.chat import LlmChat, UserMessage
-from elevenlabs import ElevenLabs
-from elevenlabs.models import VoiceSettings
+from elevenlabs import ElevenLabs, VoiceSettings
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
