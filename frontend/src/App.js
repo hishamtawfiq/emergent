@@ -1143,15 +1143,26 @@ const LessonPlayer = () => {
     
     setIsPlaying(true);
     try {
-      const response = await axios.post(`${API}/tts/generate`, { text });
+      // For Arabic pronunciation, send the Arabic text instead of English transliteration
+      let audioText = text;
+      if (type === "letter" && letter) {
+        // Use Arabic character for letter pronunciation
+        audioText = letter.arabic;
+      } else if (type === "example word" && letter) {
+        // Use Arabic example word
+        audioText = letter.example_word;
+      }
+      
+      const response = await axios.post(`${API}/tts/generate`, { text: audioText });
       setAudioSource(response.data.source);
       
       if (response.data.source === 'browser') {
         // Use browser speechSynthesis for fallback
         if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = 'ar';
-          utterance.rate = 0.8;
+          const utterance = new SpeechSynthesisUtterance(audioText);
+          utterance.lang = 'ar-SA'; // Arabic (Saudi Arabia) for better pronunciation
+          utterance.rate = 0.7; // Slower rate for learning
+          utterance.pitch = 1.0;
           utterance.onend = () => setIsPlaying(false);
           utterance.onerror = () => {
             setIsPlaying(false);
