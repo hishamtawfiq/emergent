@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-09-29T11:26:05.803257",
+  "timestamp": "2025-09-29T11:28:55.697103",
   "total_tests": 10,
-  "passed_tests": 8,
-  "success_rate": 80.0,
+  "passed_tests": 9,
+  "success_rate": 90.0,
   "test_results": [
     {
       "test_name": "API Health Check",
@@ -31,14 +31,14 @@
       "status_code": 200,
       "error": null,
       "response_data": {
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzExMjU1OUBleGFtcGxlLmNvbSIsImV4cCI6MTc1OTIzMTU2MX0.mJVD8TfR3tI0jIZ4TpC4h-HAhzMX1QXQc10EPa-U41w",
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzExMjg0NUBleGFtcGxlLmNvbSIsImV4cCI6MTc1OTIzMTcyN30.KWwiXyDKHmOQh1jKggVdGjrSNbm36BXs94Tx19oTeUs",
         "token_type": "bearer",
         "user": {
-          "id": "2f5dba38-03b1-4306-9834-532ac4e939fa",
-          "email": "test_112559@example.com",
-          "full_name": "Test User 112559",
+          "id": "b6832268-c16a-45bd-b9f0-54de83e0788c",
+          "email": "test_112845@example.com",
+          "full_name": "Test User 112845",
           "is_active": true,
-          "created_at": "2025-09-29T11:26:01.211243Z",
+          "created_at": "2025-09-29T11:28:47.804197Z",
           "total_xp": 0,
           "current_level": 1,
           "completed_letters": []
@@ -51,14 +51,14 @@
       "status_code": 200,
       "error": null,
       "response_data": {
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzExMjU1OUBleGFtcGxlLmNvbSIsImV4cCI6MTc1OTIzMTU2MX0.mJVD8TfR3tI0jIZ4TpC4h-HAhzMX1QXQc10EPa-U41w",
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzExMjg0NUBleGFtcGxlLmNvbSIsImV4cCI6MTc1OTIzMTcyOH0.gNxkHIWCyn66MsdB_xVMTxzO0tIBwLgc5mHqk-akjyk",
         "token_type": "bearer",
         "user": {
-          "id": "2f5dba38-03b1-4306-9834-532ac4e939fa",
-          "email": "test_112559@example.com",
-          "full_name": "Test User 112559",
+          "id": "b6832268-c16a-45bd-b9f0-54de83e0788c",
+          "email": "test_112845@example.com",
+          "full_name": "Test User 112845",
           "is_active": true,
-          "created_at": "2025-09-29T11:26:01.211243Z",
+          "created_at": "2025-09-29T11:28:47.804197Z",
           "total_xp": 0,
           "current_level": 1,
           "completed_letters": []
@@ -71,11 +71,11 @@
       "status_code": 200,
       "error": null,
       "response_data": {
-        "id": "2f5dba38-03b1-4306-9834-532ac4e939fa",
-        "email": "test_112559@example.com",
-        "full_name": "Test User 112559",
+        "id": "b6832268-c16a-45bd-b9f0-54de83e0788c",
+        "email": "test_112845@example.com",
+        "full_name": "Test User 112845",
         "is_active": true,
-        "created_at": "2025-09-29T11:26:01.211243Z",
+        "created_at": "2025-09-29T11:28:47.804197Z",
         "total_xp": 0,
         "current_level": 1,
         "completed_letters": []
@@ -90,34 +90,17 @@
     },
     {
       "test_name": "Save Progress",
-      "success": false,
-      "status_code": 422,
-      "error": [
-        {
-          "type": "missing",
-          "loc": [
-            "body",
-            "user_id"
-          ],
-          "msg": "Field required",
-          "input": {
-            "letter_id": 1,
-            "completed": true,
-            "score": 95,
-            "attempts": 1,
-            "xp_earned": 50
-          },
-          "url": "https://errors.pydantic.dev/2.11/v/missing"
-        }
-      ],
-      "response_data": null
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Progress saved for letter 1"
     },
     {
       "test_name": "Get Progress",
       "success": true,
       "status_code": 200,
       "error": null,
-      "response_data": "Found 0 progress records"
+      "response_data": "Found 1 progress records"
     },
     {
       "test_name": "Quiz Answer",
