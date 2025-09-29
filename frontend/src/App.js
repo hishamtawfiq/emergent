@@ -1374,7 +1374,7 @@ const LessonPlayer = () => {
           </CardHeader>
           <CardContent className="text-center">
             <VoiceRecorder 
-              targetWord={letter.pronunciation}
+              targetWord={letter.arabic}
               lessonId={letterId}
               onFeedback={handleVoiceFeedback}
             />
