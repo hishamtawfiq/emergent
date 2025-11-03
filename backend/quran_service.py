@@ -159,17 +159,45 @@ async def tafsir_for_surah(tafsir_id: int, chapter: int) -> Dict[str, Any]:
 
 
 async def tafsir_for_ayah(tafsir_id: int, ayah_key: str) -> Dict[str, Any]:
-    data = await fetch_json(f"/ayahs/{ayah_key}/tafsirs/{tafsir_id}")
-    tafsirs = data.get("tafsirs", [])
-    if tafsirs:
-        tafsir = tafsirs[0]  # Get first tafsir from the list
+    # Parse ayah_key (e.g., "2:255" -> chapter=2, ayah=255)
+    try:
+        chapter_str, ayah_str = ayah_key.split(":")
+        chapter_number = int(chapter_str)
+        ayah_number = int(ayah_str)
+    except (ValueError, IndexError):
         return {
-            "verse_key": tafsir.get("verse_key") or ayah_key,
-            "text": tafsir.get("text"),
-            "resource_id": tafsir.get("resource_id") or tafsir_id,
-            "resource_name": tafsir.get("resource_name"),
+            "verse_key": ayah_key,
+            "text": None,
+            "resource_id": tafsir_id,
+            "resource_name": None,
         }
-    else:
+    
+    # Use the alternative URL format: /tafsirs/{tafsir_id}?chapter_number=X&ayah_number=Y
+    params = {
+        "chapter_number": chapter_number,
+        "ayah_number": ayah_number
+    }
+    
+    try:
+        data = await fetch_json(f"/tafsirs/{tafsir_id}", params=params)
+        tafsirs = data.get("tafsirs", [])
+        if tafsirs:
+            tafsir = tafsirs[0]  # Get first tafsir from the list
+            return {
+                "verse_key": tafsir.get("verse_key") or ayah_key,
+                "text": tafsir.get("text"),
+                "resource_id": tafsir.get("resource_id") or tafsir_id,
+                "resource_name": tafsir.get("resource_name"),
+            }
+        else:
+            return {
+                "verse_key": ayah_key,
+                "text": None,
+                "resource_id": tafsir_id,
+                "resource_name": None,
+            }
+    except Exception:
+        # Fallback: return empty result instead of raising error
         return {
             "verse_key": ayah_key,
             "text": None,
