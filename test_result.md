@@ -100,4 +100,49 @@
 
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
+
+## user_problem_statement: "Disable home page by redirecting to /dashboard (keep auth as-is) and integrate Quran.com API v4 to expose chapters, verses, tafsir, and audio endpoints. Test backend Quran routes."
+
+## backend:
+  - task: "Quran.com API integration routes"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added quran_service.py with httpx client, TTL cache, and functions; extended server.py with /api/quran/* routes."
+
+## frontend:
+  - task: "Redirect root to /dashboard (disable home page)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Replaced '/' route with Navigate to '/dashboard'; added explicit /dashboard route to render Dashboard."
+
+## metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+## test_plan:
+  current_focus:
+    - "Quran.com API integration routes"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+## agent_communication:
+  - agent: "main"
+    message: "Please validate the new Quran API endpoints: /api/quran/chapters, /api/quran/chapters/{id}/verses (with translation_id default 20), /api/quran/resources/tafsirs, and /api/quran/tafsir/{tafsir_id}/ayah/{ayah_key}. Use chapter 1 per_page=7 and verse_key 2:255 for tafsir."
 #====================================================================================================
