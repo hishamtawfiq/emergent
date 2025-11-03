@@ -1286,6 +1286,62 @@ async def complete_review(session: ReviewSession, current_user: dict = Depends(g
         logging.error(f"Review completion error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to complete review")
 
+# Quran.com API Integration Routes
+try:
+    from . import quran_service as quran
+except Exception:
+    import quran_service as quran
+
+@api_router.get("/quran/chapters")
+async def api_quran_chapters():
+    try:
+        return {"chapters": await quran.list_chapters()}
+    except Exception as e:
+        logging.error(f"Quran chapters error: {e}")
+        raise HTTPException(status_code=502, detail="Failed to fetch chapters")
+
+@api_router.get("/quran/chapters/{chapter_id}/verses")
+async def api_quran_verses_by_chapter(chapter_id: int, translation_id: Optional[int] = 20, page: int = 1, per_page: int = 10):
+    try:
+        return await quran.verses_by_chapter(chapter_id, translation_id=translation_id, page=page, per_page=per_page)
+    except Exception as e:
+        logging.error(f"Quran verses error: {e}")
+        raise HTTPException(status_code=502, detail="Failed to fetch verses")
+
+@api_router.get("/quran/chapters/{chapter_id}/audio")
+async def api_quran_audio_for_chapter(chapter_id: int, reciter_id: Optional[int] = None):
+    if not reciter_id:
+        raise HTTPException(status_code=400, detail="reciter_id query param is required")
+    try:
+        return await quran.audio_for_chapter(chapter_id, reciter_id=reciter_id)
+    except Exception as e:
+        logging.error(f"Quran audio error: {e}")
+        raise HTTPException(status_code=502, detail="Failed to fetch audio")
+
+@api_router.get("/quran/resources/tafsirs")
+async def api_quran_list_tafsirs():
+    try:
+        return {"tafsirs": await quran.list_tafsirs()}
+    except Exception as e:
+        logging.error(f"Quran tafsirs error: {e}")
+        raise HTTPException(status_code=502, detail="Failed to fetch tafsirs")
+
+@api_router.get("/quran/tafsir/{tafsir_id}/surah/{chapter}")
+async def api_quran_tafsir_for_surah(tafsir_id: int, chapter: int):
+    try:
+        return await quran.tafsir_for_surah(tafsir_id, chapter)
+    except Exception as e:
+        logging.error(f"Quran surah tafsir error: {e}")
+        raise HTTPException(status_code=502, detail="Failed to fetch surah tafsir")
+
+@api_router.get("/quran/tafsir/{tafsir_id}/ayah/{ayah_key}")
+async def api_quran_tafsir_for_ayah(tafsir_id: int, ayah_key: str):
+    try:
+        return await quran.tafsir_for_ayah(tafsir_id, ayah_key)
+    except Exception as e:
+        logging.error(f"Quran ayah tafsir error: {e}")
+        raise HTTPException(status_code=502, detail="Failed to fetch ayah tafsir")
+
 # Include router
 app.include_router(api_router)
 
