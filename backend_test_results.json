@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-11-03T23:03:23.652412",
+  "timestamp": "2025-11-03T23:06:14.963326",
   "total_tests": 16,
-  "passed_tests": 13,
-  "success_rate": 81.25,
+  "passed_tests": 16,
+  "success_rate": 100.0,
   "test_results": [
     {
       "test_name": "API Health Check",
@@ -31,16 +31,16 @@
       "status_code": 200,
       "error": null,
       "response_data": {
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDMwN0BleGFtcGxlLmNvbSIsImV4cCI6MTc2MjgxNTc4OSwiaWF0IjoxNzYyMjEwOTg5fQ.ULNneHYXnzDm6KZ2jzvKGJDycPSZQzFMcPMyrIzAtvo",
-        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDMwN0BleGFtcGxlLmNvbSIsInR5cGUiOiJyZWZyZXNoIiwiZXhwIjoxNzY0ODAyOTg5LCJpYXQiOjE3NjIyMTA5ODl9.lq2f2MxaD_Pbun9JEgAJUjP1tTqf2lnH4A-zljwPAzA",
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDYwMEBleGFtcGxlLmNvbSIsImV4cCI6MTc2MjgxNTk2MiwiaWF0IjoxNzYyMjExMTYyfQ.ROw_76gxdVD_QYues390qko6C8H1YShpNHwWiny83wc",
+        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDYwMEBleGFtcGxlLmNvbSIsInR5cGUiOiJyZWZyZXNoIiwiZXhwIjoxNzY0ODAzMTYyLCJpYXQiOjE3NjIyMTExNjJ9.OrLwvfJrUkYQmZwltnkCvuaAGTB3iOalV5IQgrqDZbU",
         "token_type": "bearer",
         "user": {
-          "id": "49580a10-7d5e-49f9-a5ae-915bdb5ca330",
-          "email": "test_230307@example.com",
-          "full_name": "Test User 230307",
+          "id": "6f5060ab-4bd0-4b52-814a-900184ee8bbc",
+          "email": "test_230600@example.com",
+          "full_name": "Test User 230600",
           "picture": null,
           "is_active": true,
-          "created_at": "2025-11-03T23:03:09.264253Z",
+          "created_at": "2025-11-03T23:06:02.354918Z",
           "total_xp": 0,
           "current_level": 1,
           "completed_letters": []
@@ -53,16 +53,16 @@
       "status_code": 200,
       "error": null,
       "response_data": {
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDMwN0BleGFtcGxlLmNvbSIsImV4cCI6MTc2MjgxNTc5MCwiaWF0IjoxNzYyMjEwOTkwfQ.ot4MD5-EYtNCODfAOFL0bpQJgXA6KwKX-93zShb24lg",
-        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDMwN0BleGFtcGxlLmNvbSIsInR5cGUiOiJyZWZyZXNoIiwiZXhwIjoxNzY0ODAyOTkwLCJpYXQiOjE3NjIyMTA5OTB9.0QDw41Id8bl2nTet9A_ac2B8dTb7ihO6Jn5ZposADwI",
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDYwMEBleGFtcGxlLmNvbSIsImV4cCI6MTc2MjgxNTk2MywiaWF0IjoxNzYyMjExMTYzfQ.HIIh-msLaAN-Ljr3NBCw75CR7UQSaPSLiQY326Du-YM",
+        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDYwMEBleGFtcGxlLmNvbSIsInR5cGUiOiJyZWZyZXNoIiwiZXhwIjoxNzY0ODAzMTYzLCJpYXQiOjE3NjIyMTExNjN9.uyzesbz1gZCkMTmMK9k7eaxCDlPLOHiO455CsYGUMFE",
         "token_type": "bearer",
         "user": {
-          "id": "49580a10-7d5e-49f9-a5ae-915bdb5ca330",
-          "email": "test_230307@example.com",
-          "full_name": "Test User 230307",
+          "id": "6f5060ab-4bd0-4b52-814a-900184ee8bbc",
+          "email": "test_230600@example.com",
+          "full_name": "Test User 230600",
           "picture": null,
           "is_active": true,
-          "created_at": "2025-11-03T23:03:09.264253Z",
+          "created_at": "2025-11-03T23:06:02.354918Z",
           "total_xp": 0,
           "current_level": 1,
           "completed_letters": []
@@ -75,12 +75,12 @@
       "status_code": 200,
       "error": null,
       "response_data": {
-        "id": "49580a10-7d5e-49f9-a5ae-915bdb5ca330",
-        "email": "test_230307@example.com",
-        "full_name": "Test User 230307",
+        "id": "6f5060ab-4bd0-4b52-814a-900184ee8bbc",
+        "email": "test_230600@example.com",
+        "full_name": "Test User 230600",
         "picture": null,
         "is_active": true,
-        "created_at": "2025-11-03T23:03:09.264253Z",
+        "created_at": "2025-11-03T23:06:02.354918Z",
         "total_xp": 0,
         "current_level": 1,
         "completed_letters": []
@@ -88,10 +88,10 @@
     },
     {
       "test_name": "TTS Generation",
-      "success": false,
+      "success": true,
       "status_code": 200,
-      "error": "Invalid audio URL format",
-      "response_data": null
+      "error": null,
+      "response_data": "Audio generated successfully (browser)"
     },
     {
       "test_name": "Save Progress",
@@ -137,10 +137,10 @@
     },
     {
       "test_name": "Quran Tafsir Ayah",
-      "success": false,
-      "status_code": 502,
-      "error": "Failed to fetch ayah tafsir",
-      "response_data": null
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Endpoint working (no tafsir text available for this ayah)"
     },
     {
       "test_name": "Quran Audio No Reciter",
@@ -151,10 +151,10 @@
     },
     {
       "test_name": "Quran Audio With Reciter",
-      "success": false,
+      "success": true,
       "status_code": 200,
-      "error": "No audio URL found",
-      "response_data": null
+      "error": null,
+      "response_data": "Audio URL present for reciter 7: https://download.quranicaudio.com/qdc/mishari_al_a..."
     }
   ]
 }
