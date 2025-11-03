@@ -161,7 +161,7 @@ STUDENT CONTEXT:
 
 ## 🚀 **Live Preview Testing**
 
-**🌐 Demo URL:** https://quranic-buddy.preview.emergentagent.com
+**🌐 Demo URL:** https://maqraa-ai.preview.emergentagent.com
 
 **Testing Scenarios:**
 1. **Register/Login** → Click "AI Tutor" button on dashboard

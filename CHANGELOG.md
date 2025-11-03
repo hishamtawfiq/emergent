@@ -178,5 +178,5 @@
 ---
 
 **Deployment Status: ✅ LIVE**  
-**Live URL:** https://quranic-buddy.preview.emergentagent.com  
+**Live URL:** https://maqraa-ai.preview.emergentagent.com  
 **All hotfixes applied and tested successfully.**

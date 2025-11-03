@@ -113,7 +113,7 @@ const playAudio = async (text, type = "letter") => {
 
 ## Live Demo Verification:
 
-**🌐 Test URL**: https://quranic-buddy.preview.emergentagent.com
+**🌐 Test URL**: https://maqraa-ai.preview.emergentagent.com
 
 **Test Steps**:
 1. ✅ Login → Go to Lesson 1 (Alif)
