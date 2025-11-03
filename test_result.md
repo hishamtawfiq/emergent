@@ -106,15 +106,18 @@
 ## backend:
   - task: "Quran.com API integration routes"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added quran_service.py with httpx client, TTL cache, and functions; extended server.py with /api/quran/* routes."
+      - working: true
+        agent: "testing"
+        comment: "✅ All Quran API endpoints tested successfully: GET /api/quran/chapters (114 chapters with id, name_ar, name_en), GET /api/quran/chapters/1/verses?per_page=7 (7 verses with verse_key, text_uthmani, translation), GET /api/quran/resources/tafsirs (20 tafsirs with id, slug/language), GET /api/quran/tafsir/169/ayah/2:255 (endpoint working with correct structure), GET /api/quran/chapters/1/audio without reciter_id (correctly returns 400), GET /api/quran/chapters/1/audio?reciter_id=7 (returns audio URL in audio_file.audio_url). Fixed tafsir endpoint URL format from /tafsirs/{id}/by_ayah/{key} to /tafsirs/{id}?chapter_number=X&ayah_number=Y. All endpoints working as expected with proper error handling and response structures."
 
 ## frontend:
   - task: "Redirect root to /dashboard (disable home page)"
