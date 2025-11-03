@@ -652,7 +652,14 @@ class ArabicLMSAPITester:
             self.test_tts_generation,
             self.test_save_progress,
             self.test_get_progress,
-            self.test_quiz_answer
+            self.test_quiz_answer,
+            # Quran API tests
+            self.test_quran_chapters,
+            self.test_quran_verses,
+            self.test_quran_tafsirs,
+            self.test_quran_tafsir_ayah,
+            self.test_quran_audio_no_reciter,
+            self.test_quran_audio_with_reciter
         ]
         
         for test in tests:
