@@ -616,14 +616,16 @@ class ArabicLMSAPITester:
             try:
                 data = response.json()
                 
-                # Check if audio URL is present
-                audio_url = data.get('audio_url')
+                # Check if audio URL is present in audio_file.audio_url
+                audio_file = data.get('audio_file', {})
+                audio_url = audio_file.get('audio_url') or data.get('audio_url')
+                
                 if audio_url and len(audio_url.strip()) > 0:
                     self.log_test("Quran Audio With Reciter", True, response.status_code, 
-                                response_data=f"Audio URL present for reciter 7")
+                                response_data=f"Audio URL present for reciter 7: {audio_url[:50]}...")
                 else:
                     self.log_test("Quran Audio With Reciter", False, response.status_code, 
-                                "No audio URL found")
+                                f"No audio URL found in response: {list(data.keys())}")
                     return False
             except Exception as e:
                 self.log_test("Quran Audio With Reciter", False, response.status_code, f"JSON parse error: {e}")
