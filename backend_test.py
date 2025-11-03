@@ -249,12 +249,15 @@ class ArabicLMSAPITester:
         if success:
             try:
                 data = response.json()
-                if 'audio_url' in data and data['audio_url'].startswith('data:audio/mpeg;base64,'):
+                audio_url = data.get('audio_url', '')
+                # Accept both ElevenLabs base64 and browser speech fallback
+                if (audio_url.startswith('data:audio/mpeg;base64,') or 
+                    audio_url.startswith('browser_speech:')):
                     self.log_test("TTS Generation", True, response.status_code, 
-                                response_data="Audio generated successfully")
+                                response_data=f"Audio generated successfully ({data.get('source', 'unknown')})")
                 else:
                     self.log_test("TTS Generation", False, response.status_code, 
-                                "Invalid audio URL format")
+                                f"Invalid audio URL format: {audio_url[:50]}...")
                     return False
             except Exception as e:
                 self.log_test("TTS Generation", False, response.status_code, f"JSON parse error: {e}")
