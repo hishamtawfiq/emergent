@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-09-29T11:28:55.697103",
-  "total_tests": 10,
-  "passed_tests": 9,
-  "success_rate": 90.0,
+  "timestamp": "2025-11-03T23:03:23.652412",
+  "total_tests": 16,
+  "passed_tests": 13,
+  "success_rate": 81.25,
   "test_results": [
     {
       "test_name": "API Health Check",
@@ -31,14 +31,16 @@
       "status_code": 200,
       "error": null,
       "response_data": {
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzExMjg0NUBleGFtcGxlLmNvbSIsImV4cCI6MTc1OTIzMTcyN30.KWwiXyDKHmOQh1jKggVdGjrSNbm36BXs94Tx19oTeUs",
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDMwN0BleGFtcGxlLmNvbSIsImV4cCI6MTc2MjgxNTc4OSwiaWF0IjoxNzYyMjEwOTg5fQ.ULNneHYXnzDm6KZ2jzvKGJDycPSZQzFMcPMyrIzAtvo",
+        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDMwN0BleGFtcGxlLmNvbSIsInR5cGUiOiJyZWZyZXNoIiwiZXhwIjoxNzY0ODAyOTg5LCJpYXQiOjE3NjIyMTA5ODl9.lq2f2MxaD_Pbun9JEgAJUjP1tTqf2lnH4A-zljwPAzA",
         "token_type": "bearer",
         "user": {
-          "id": "b6832268-c16a-45bd-b9f0-54de83e0788c",
-          "email": "test_112845@example.com",
-          "full_name": "Test User 112845",
+          "id": "49580a10-7d5e-49f9-a5ae-915bdb5ca330",
+          "email": "test_230307@example.com",
+          "full_name": "Test User 230307",
+          "picture": null,
           "is_active": true,
-          "created_at": "2025-09-29T11:28:47.804197Z",
+          "created_at": "2025-11-03T23:03:09.264253Z",
           "total_xp": 0,
           "current_level": 1,
           "completed_letters": []
@@ -51,14 +53,16 @@
       "status_code": 200,
       "error": null,
       "response_data": {
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzExMjg0NUBleGFtcGxlLmNvbSIsImV4cCI6MTc1OTIzMTcyOH0.gNxkHIWCyn66MsdB_xVMTxzO0tIBwLgc5mHqk-akjyk",
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDMwN0BleGFtcGxlLmNvbSIsImV4cCI6MTc2MjgxNTc5MCwiaWF0IjoxNzYyMjEwOTkwfQ.ot4MD5-EYtNCODfAOFL0bpQJgXA6KwKX-93zShb24lg",
+        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0XzIzMDMwN0BleGFtcGxlLmNvbSIsInR5cGUiOiJyZWZyZXNoIiwiZXhwIjoxNzY0ODAyOTkwLCJpYXQiOjE3NjIyMTA5OTB9.0QDw41Id8bl2nTet9A_ac2B8dTb7ihO6Jn5ZposADwI",
         "token_type": "bearer",
         "user": {
-          "id": "b6832268-c16a-45bd-b9f0-54de83e0788c",
-          "email": "test_112845@example.com",
-          "full_name": "Test User 112845",
+          "id": "49580a10-7d5e-49f9-a5ae-915bdb5ca330",
+          "email": "test_230307@example.com",
+          "full_name": "Test User 230307",
+          "picture": null,
           "is_active": true,
-          "created_at": "2025-09-29T11:28:47.804197Z",
+          "created_at": "2025-11-03T23:03:09.264253Z",
           "total_xp": 0,
           "current_level": 1,
           "completed_letters": []
@@ -71,11 +75,12 @@
       "status_code": 200,
       "error": null,
       "response_data": {
-        "id": "b6832268-c16a-45bd-b9f0-54de83e0788c",
-        "email": "test_112845@example.com",
-        "full_name": "Test User 112845",
+        "id": "49580a10-7d5e-49f9-a5ae-915bdb5ca330",
+        "email": "test_230307@example.com",
+        "full_name": "Test User 230307",
+        "picture": null,
         "is_active": true,
-        "created_at": "2025-09-29T11:28:47.804197Z",
+        "created_at": "2025-11-03T23:03:09.264253Z",
         "total_xp": 0,
         "current_level": 1,
         "completed_letters": []
@@ -84,8 +89,8 @@
     {
       "test_name": "TTS Generation",
       "success": false,
-      "status_code": 500,
-      "error": "Audio generation failed",
+      "status_code": 200,
+      "error": "Invalid audio URL format",
       "response_data": null
     },
     {
@@ -108,6 +113,48 @@
       "status_code": 200,
       "error": null,
       "response_data": "Correct: True, XP: 20"
+    },
+    {
+      "test_name": "Quran Chapters",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 114 chapters with required fields"
+    },
+    {
+      "test_name": "Quran Verses",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 7 verses with translation"
+    },
+    {
+      "test_name": "Quran Tafsirs",
+      "success": true,
+      "status_code": 200,
+      "error": null,
+      "response_data": "Found 20 tafsirs"
+    },
+    {
+      "test_name": "Quran Tafsir Ayah",
+      "success": false,
+      "status_code": 502,
+      "error": "Failed to fetch ayah tafsir",
+      "response_data": null
+    },
+    {
+      "test_name": "Quran Audio No Reciter",
+      "success": true,
+      "status_code": 400,
+      "error": null,
+      "response_data": "Correctly returned 400 for missing reciter_id"
+    },
+    {
+      "test_name": "Quran Audio With Reciter",
+      "success": false,
+      "status_code": 200,
+      "error": "No audio URL found",
+      "response_data": null
     }
   ]
 }
