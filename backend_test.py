@@ -382,6 +382,258 @@ class ArabicLMSAPITester:
         
         return success
 
+    def test_quran_chapters(self):
+        """Test Quran chapters endpoint"""
+        print("\n🔍 Testing Quran Chapters...")
+        response = self.make_request('GET', 'quran/chapters')
+        
+        if response is None:
+            self.log_test("Quran Chapters", False, error="Request failed")
+            return False
+        
+        success = response.status_code == 200
+        if success:
+            try:
+                data = response.json()
+                chapters = data.get('chapters', [])
+                
+                # Expect 114 chapters
+                if len(chapters) == 114:
+                    # Check required fields in first chapter
+                    if chapters:
+                        first_chapter = chapters[0]
+                        required_fields = ['id', 'name_ar', 'name_en']
+                        missing_fields = [field for field in required_fields if field not in first_chapter]
+                        
+                        if not missing_fields:
+                            self.log_test("Quran Chapters", True, response.status_code, 
+                                        response_data=f"Found {len(chapters)} chapters with required fields")
+                        else:
+                            self.log_test("Quran Chapters", False, response.status_code, 
+                                        f"Missing fields in chapters: {missing_fields}")
+                            return False
+                    else:
+                        self.log_test("Quran Chapters", False, response.status_code, "Empty chapters array")
+                        return False
+                else:
+                    self.log_test("Quran Chapters", False, response.status_code, 
+                                f"Expected 114 chapters, got {len(chapters)}")
+                    return False
+            except Exception as e:
+                self.log_test("Quran Chapters", False, response.status_code, f"JSON parse error: {e}")
+                return False
+        else:
+            try:
+                error_detail = response.json().get('detail', 'Unknown error')
+            except:
+                error_detail = response.text
+            self.log_test("Quran Chapters", False, response.status_code, error_detail)
+        
+        return success
+
+    def test_quran_verses(self):
+        """Test Quran verses endpoint"""
+        print("\n🔍 Testing Quran Verses...")
+        response = self.make_request('GET', 'quran/chapters/1/verses?per_page=7')
+        
+        if response is None:
+            self.log_test("Quran Verses", False, error="Request failed")
+            return False
+        
+        success = response.status_code == 200
+        if success:
+            try:
+                data = response.json()
+                verses = data.get('verses', [])
+                
+                # Expect 7 verses
+                if len(verses) == 7:
+                    # Check required fields in first verse
+                    if verses:
+                        first_verse = verses[0]
+                        required_fields = ['verse_key', 'text_uthmani']
+                        missing_fields = [field for field in required_fields if field not in first_verse]
+                        
+                        if not missing_fields:
+                            # Check if translation is present (should be Saheeh Intl, id=20 default)
+                            has_translation = first_verse.get('translation') is not None
+                            if has_translation:
+                                self.log_test("Quran Verses", True, response.status_code, 
+                                            response_data=f"Found {len(verses)} verses with translation")
+                            else:
+                                self.log_test("Quran Verses", False, response.status_code, 
+                                            "Translation not present in verses")
+                                return False
+                        else:
+                            self.log_test("Quran Verses", False, response.status_code, 
+                                        f"Missing fields in verses: {missing_fields}")
+                            return False
+                    else:
+                        self.log_test("Quran Verses", False, response.status_code, "Empty verses array")
+                        return False
+                else:
+                    self.log_test("Quran Verses", False, response.status_code, 
+                                f"Expected 7 verses, got {len(verses)}")
+                    return False
+            except Exception as e:
+                self.log_test("Quran Verses", False, response.status_code, f"JSON parse error: {e}")
+                return False
+        else:
+            try:
+                error_detail = response.json().get('detail', 'Unknown error')
+            except:
+                error_detail = response.text
+            self.log_test("Quran Verses", False, response.status_code, error_detail)
+        
+        return success
+
+    def test_quran_tafsirs(self):
+        """Test Quran tafsirs endpoint"""
+        print("\n🔍 Testing Quran Tafsirs...")
+        response = self.make_request('GET', 'quran/resources/tafsirs')
+        
+        if response is None:
+            self.log_test("Quran Tafsirs", False, error="Request failed")
+            return False
+        
+        success = response.status_code == 200
+        if success:
+            try:
+                data = response.json()
+                tafsirs = data.get('tafsirs', [])
+                
+                # Expect non-empty tafsirs array
+                if len(tafsirs) > 0:
+                    # Check required fields in first tafsir
+                    first_tafsir = tafsirs[0]
+                    required_fields = ['id']
+                    missing_fields = [field for field in required_fields if field not in first_tafsir]
+                    
+                    if not missing_fields:
+                        # Check if slug or language is present
+                        has_slug_or_lang = first_tafsir.get('slug') or first_tafsir.get('language')
+                        if has_slug_or_lang:
+                            self.log_test("Quran Tafsirs", True, response.status_code, 
+                                        response_data=f"Found {len(tafsirs)} tafsirs")
+                        else:
+                            self.log_test("Quran Tafsirs", False, response.status_code, 
+                                        "No slug or language field in tafsirs")
+                            return False
+                    else:
+                        self.log_test("Quran Tafsirs", False, response.status_code, 
+                                    f"Missing fields in tafsirs: {missing_fields}")
+                        return False
+                else:
+                    self.log_test("Quran Tafsirs", False, response.status_code, "Empty tafsirs array")
+                    return False
+            except Exception as e:
+                self.log_test("Quran Tafsirs", False, response.status_code, f"JSON parse error: {e}")
+                return False
+        else:
+            try:
+                error_detail = response.json().get('detail', 'Unknown error')
+            except:
+                error_detail = response.text
+            self.log_test("Quran Tafsirs", False, response.status_code, error_detail)
+        
+        return success
+
+    def test_quran_tafsir_ayah(self):
+        """Test Quran tafsir for specific ayah endpoint"""
+        print("\n🔍 Testing Quran Tafsir for Ayah...")
+        # Test Ayat al-Kursi (2:255) with resource 1
+        response = self.make_request('GET', 'quran/tafsir/1/ayah/2:255')
+        
+        if response is None:
+            self.log_test("Quran Tafsir Ayah", False, error="Request failed")
+            return False
+        
+        success = response.status_code == 200
+        if success:
+            try:
+                data = response.json()
+                
+                # Check if tafsir text is present
+                tafsir_text = data.get('text')
+                if tafsir_text and len(tafsir_text.strip()) > 0:
+                    self.log_test("Quran Tafsir Ayah", True, response.status_code, 
+                                response_data=f"Tafsir text present for 2:255")
+                else:
+                    self.log_test("Quran Tafsir Ayah", False, response.status_code, 
+                                "No tafsir text found for ayah 2:255")
+                    return False
+            except Exception as e:
+                self.log_test("Quran Tafsir Ayah", False, response.status_code, f"JSON parse error: {e}")
+                return False
+        else:
+            try:
+                error_detail = response.json().get('detail', 'Unknown error')
+            except:
+                error_detail = response.text
+            self.log_test("Quran Tafsir Ayah", False, response.status_code, error_detail)
+        
+        return success
+
+    def test_quran_audio_no_reciter(self):
+        """Test Quran audio endpoint without reciter_id (should return 400)"""
+        print("\n🔍 Testing Quran Audio without reciter_id...")
+        response = self.make_request('GET', 'quran/chapters/1/audio')
+        
+        if response is None:
+            self.log_test("Quran Audio No Reciter", False, error="Request failed")
+            return False
+        
+        # Expect 400 Bad Request
+        success = response.status_code == 400
+        if success:
+            self.log_test("Quran Audio No Reciter", True, response.status_code, 
+                        response_data="Correctly returned 400 for missing reciter_id")
+        else:
+            try:
+                error_detail = response.json().get('detail', 'Unknown error')
+            except:
+                error_detail = response.text
+            self.log_test("Quran Audio No Reciter", False, response.status_code, 
+                        f"Expected 400, got {response.status_code}: {error_detail}")
+        
+        return success
+
+    def test_quran_audio_with_reciter(self):
+        """Test Quran audio endpoint with reciter_id"""
+        print("\n🔍 Testing Quran Audio with reciter_id...")
+        # Try with reciter_id 7
+        response = self.make_request('GET', 'quran/chapters/1/audio?reciter_id=7')
+        
+        if response is None:
+            self.log_test("Quran Audio With Reciter", False, error="Request failed")
+            return False
+        
+        success = response.status_code == 200
+        if success:
+            try:
+                data = response.json()
+                
+                # Check if audio URL is present
+                audio_url = data.get('audio_url')
+                if audio_url and len(audio_url.strip()) > 0:
+                    self.log_test("Quran Audio With Reciter", True, response.status_code, 
+                                response_data=f"Audio URL present for reciter 7")
+                else:
+                    self.log_test("Quran Audio With Reciter", False, response.status_code, 
+                                "No audio URL found")
+                    return False
+            except Exception as e:
+                self.log_test("Quran Audio With Reciter", False, response.status_code, f"JSON parse error: {e}")
+                return False
+        else:
+            try:
+                error_detail = response.json().get('detail', 'Unknown error')
+            except:
+                error_detail = response.text
+            self.log_test("Quran Audio With Reciter", False, response.status_code, error_detail)
+        
+        return success
+
     def run_all_tests(self):
         """Run all API tests"""
         print("🚀 Starting Arabic LMS API Testing...")
