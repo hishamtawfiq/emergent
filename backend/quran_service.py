@@ -159,14 +159,23 @@ async def tafsir_for_surah(tafsir_id: int, chapter: int) -> Dict[str, Any]:
 
 
 async def tafsir_for_ayah(tafsir_id: int, ayah_key: str) -> Dict[str, Any]:
-    data = await fetch_json(f"/tafsirs/{tafsir_id}/by_ayah/{ayah_key}")
-    tafsir = data.get("tafsir") or {}
-    return {
-        "verse_key": tafsir.get("verse_key") or ayah_key,
-        "text": tafsir.get("text"),
-        "resource_id": tafsir.get("resource_id") or tafsir_id,
-        "resource_name": tafsir.get("resource_name"),
-    }
+    data = await fetch_json(f"/ayahs/{ayah_key}/tafsirs/{tafsir_id}")
+    tafsirs = data.get("tafsirs", [])
+    if tafsirs:
+        tafsir = tafsirs[0]  # Get first tafsir from the list
+        return {
+            "verse_key": tafsir.get("verse_key") or ayah_key,
+            "text": tafsir.get("text"),
+            "resource_id": tafsir.get("resource_id") or tafsir_id,
+            "resource_name": tafsir.get("resource_name"),
+        }
+    else:
+        return {
+            "verse_key": ayah_key,
+            "text": None,
+            "resource_id": tafsir_id,
+            "resource_name": None,
+        }
 
 
 async def audio_for_chapter(chapter: int, reciter_id: int) -> Dict[str, Any]:
