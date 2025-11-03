@@ -229,25 +229,23 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route 
-        path="/" 
-        element={user ? <Dashboard /> : <LandingPage />} 
-      />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboard" element={<Dashboard />} />
       <Route 
         path="/lesson/:letterId" 
-        element={user ? <LessonPlayer /> : <Navigate to="/" />} 
+        element={user ? <LessonPlayer /> : <Navigate to="/dashboard" />} 
       />
       <Route 
         path="/quiz/:letterId" 
-        element={user ? <QuizPage /> : <Navigate to="/" />} 
+        element={user ? <QuizPage /> : <Navigate to="/dashboard" />} 
       />
       <Route 
         path="/review" 
-        element={user ? <ReviewMode /> : <Navigate to="/" />} 
+        element={user ? <ReviewMode /> : <Navigate to="/dashboard" />} 
       />
       <Route 
         path="/admin" 
-        element={user ? <AdminPanel /> : <Navigate to="/" />} 
+        element={user ? <AdminPanel /> : <Navigate to="/dashboard" />} 
       />
     </Routes>
   );
